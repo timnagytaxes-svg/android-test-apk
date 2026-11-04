@@ -47,13 +47,23 @@ jobs:
           set -euo pipefail
           keytool -genkeypair -v -keystore godot/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
           mkdir -p "$HOME/.config/godot"
-          cat > "$HOME/.config/godot/editor_settings-4.tres" <<EOF
+          cat > "$HOME/.config/godot/editor_settings-4.4.tres" <<EOF
           [gd_resource type="EditorSettings" format=3]
 
           [resource]
           export/android/android_sdk_path = "${ANDROID_HOME}"
           export/android/java_sdk_path = "${JAVA_HOME}"
           EOF
+      - name: Verify Android tools and Godot templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x "${ANDROID_HOME}/platform-tools/adb"
+          test -d "${JAVA_HOME}"
+          test -s "$HOME/.local/share/godot/export_templates/${GODOT_RELEASE}/android_debug.apk"
+          test -s godot/debug.keystore
+          test -s "$HOME/.config/godot/editor_settings-4.4.tres"
+          echo "Android SDK and export templates present"
       - name: Import Godot project
         shell: bash
         run: |
@@ -64,7 +74,10 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build
-          "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path godot --export-debug "Android" "$GITHUB_WORKSPACE/build/godot-test.apk"
+          export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$GITHUB_WORKSPACE/godot/debug.keystore"
+          export GODOT_ANDROID_KEYSTORE_DEBUG_USER="androiddebugkey"
+          export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="android"
+          "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --verbose --path godot --export-debug "Android" "$GITHUB_WORKSPACE/build/godot-test.apk"
           test -s build/godot-test.apk
       - name: Upload Godot APK
         uses: actions/upload-artifact@v4
