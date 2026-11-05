@@ -68,6 +68,20 @@ func _init() -> void:
     _check(void_boss.unit_by_id("ashfang").health > 95,"Final boss has scaled health")
     _check(campaign.journal().contains("Skyvault") and campaign.journal().contains("Glimmerfen"),"Journal shows all chapters")
 
+    # Companion bonds form optional character arcs across all three chapters.
+    var story: Dictionary = campaign.camp_conversation("mira")
+    _check(story.get("title") == "A Dawn Worth Keeping","Mira's final camp chapter is written")
+    _check(campaign.bonds["mira"] == 3,"Final companion conversation upgrades bond")
+    _check(campaign.camp_conversation("lyra").has("text"),"Lyra has an original camp story")
+    _check(campaign.camp_conversation("kestrel").has("text"),"Kestrel has an original camp story")
+    _check(campaign.achievements.has("party_bonds"),"Companion achievement triggers when everyone bonds")
+    var story_bonus := V3Battle.new(bag)
+    story_bonus.create(progress,"void_raider")
+    var old_companion_power: int = story_bonus.unit_by_id("mira").power
+    campaign.apply_battle_modifiers(story_bonus)
+    _check(story_bonus.unit_by_id("mira").power > old_companion_power,
+        "Companion bonds provide battle bonuses without changing base progression")
+
     var save: Dictionary = campaign.to_dict()
     var revived := V6Campaign.new()
     _check(revived.restore(save),"Campaign restores three areas")

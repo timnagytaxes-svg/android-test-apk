@@ -25,6 +25,11 @@ func _exercise() -> void:
     screen.call("_open_panel","journal")
     _check(screen.get("overlay").visible and screen.get("overlay_text").text.contains("CHAPTER 1"),
         "Quest journal opens")
+    screen.call("_open_panel","camp")
+    _check(screen.get("overlay_title").text.contains("CAMP"),"Camp has a dedicated conversation panel")
+    screen.call("_camp_talk","mira")
+    _check(screen.get("overlay_text").text.contains("Last Lantern"),"Companion chapter-one dialogue displayed")
+    _check(director.bonds["mira"] == 1,"Dialogue raises companion bond and autosaves")
     screen.call("_open_panel","pack")
     _check(screen.get("overlay_text").text.contains("Potions"),"Inventory opens outside combat")
     screen.call("_close_panel")
