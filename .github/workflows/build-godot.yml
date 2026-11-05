@@ -97,6 +97,13 @@ jobs:
           timeout 60s "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path godot --script res://v05/tests/smoke.gd 2>&1 | tee /tmp/v05-tests.txt
           grep -q "V05 WORLD QUESTS AND ENCOUNTER TESTS PASSED" /tmp/v05-tests.txt
           if grep -E 'SCRIPT ERROR|Parse Error|FAIL V05:' /tmp/v05-tests.txt; then exit 1; fi
+      - name: Run v0.5 world to battle UI integration tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 50s "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path godot --script res://v05/tests/ui_smoke.gd 2>&1 | tee /tmp/v05-ui-tests.txt
+          grep -q "V05 UI BATTLE TRANSITION TESTS PASSED" /tmp/v05-ui-tests.txt
+          if grep -E 'SCRIPT ERROR|Parse Error|FAIL V05 UI:' /tmp/v05-ui-tests.txt; then exit 1; fi
       - name: Check main scene boots
         shell: bash
         run: |
