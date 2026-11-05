@@ -108,16 +108,16 @@ func _draw_landmarks(pal: Dictionary) -> void:
     var zone: V6ZoneWorld = world as V6ZoneWorld
     if zone == null:
         return
-    _draw_house(zone.ELDER, pal, Color("#9b77b9"))
+    _draw_house(V5WorldState.ELDER, pal, Color("#9b77b9"))
     _draw_house(V6ZoneWorld.MERCHANT, pal, Color("#e2a365"))
     _draw_house(V6ZoneWorld.CAMP, pal, Color("#8cbbad"))
     _draw_house(V6ZoneWorld.CHRONICLE, pal, Color("#c6b9f2"))
     if not zone.chest_opened:
-        _marker(zone.CHEST, Color("#edc372"), "$")
-    for encounter: String in zone.ENCOUNTERS.keys():
+        _marker(V5WorldState.CHEST, Color("#edc372"), "$")
+    for encounter: String in V5WorldState.ENCOUNTERS.keys():
         if bool(zone.cleared[encounter]):
             continue
-        _marker(zone.ENCOUNTERS[encounter],
+        _marker(V5WorldState.ENCOUNTERS[encounter],
             Color("#ed7a75") if encounter == "boss" else Color("#f9a46a"),
             "!" if encounter == "boss" else "X")
     if zone.chapter < 2:
