@@ -11,6 +11,7 @@ var armor: int
 var initiative: int
 var stamina: int = 3
 var guarding: bool = false
+var chilled: bool = false
 var action_used: bool = false
 var bonus_used: bool = false
 
@@ -32,8 +33,9 @@ func receive_damage(amount: int) -> int:
     hp -= applied
     return applied
 
-func heal(amount: int) -> int:
-    var applied: int = mini(max_hp - hp, maxi(amount, 0))
+func heal(amount: int, cap: int = -1) -> int:
+    var limit: int = max_hp if cap < 0 else cap
+    var applied: int = mini(maxi(0, limit - hp), maxi(amount, 0))
     hp += applied
     return applied
 
@@ -48,7 +50,7 @@ func to_dict() -> Dictionary:
         "id": id, "name": display_name, "team": team,
         "max_hp": max_hp, "hp": hp, "power": power, "armor": armor,
         "initiative": initiative, "stamina": stamina,
-        "guarding": guarding, "action_used": action_used,
+        "guarding": guarding, "chilled": chilled, "action_used": action_used,
         "bonus_used": bonus_used
     }
 
@@ -62,9 +64,10 @@ static func from_dict(data: Dictionary) -> ModuleActor:
     actor.hp = int(data.get("hp", -1))
     actor.stamina = int(data.get("stamina", -1))
     actor.guarding = bool(data.get("guarding", false))
+    actor.chilled = bool(data.get("chilled", false))
     actor.action_used = bool(data.get("action_used", false))
     actor.bonus_used = bool(data.get("bonus_used", false))
-    if actor.max_hp < 1 or actor.max_hp > 999 or actor.hp < 0 or actor.hp > actor.max_hp:
+    if actor.max_hp < 1 or actor.max_hp > 999 or actor.hp < 0 or actor.hp > actor.max_hp + 12:
         return null
     if actor.stamina < 0 or actor.stamina > 3:
         return null
