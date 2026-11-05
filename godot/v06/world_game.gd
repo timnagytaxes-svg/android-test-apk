@@ -11,6 +11,7 @@ var overlay_mode: String = ""
 var story_title: Label
 var menu_row: HBoxContainer
 var _returning: bool = false
+var _last_camp_story: String = ""
 var _save_store := V6SaveStore.new()
 var _sound: V6Sound
 
@@ -158,6 +159,13 @@ func _open_panel(kind: String) -> void:
             overlay_text.text = "Your companions share food and stories beneath the stars.\nGold: %d\nPersistent wounds: %s" % [campaign.gold, JSON.stringify(campaign.party_wounds)]
             _panel_button("REST FULL PARTY  •  15 GOLD",_purchase.bind("rest"))
             _panel_button("OPEN MERCHANT",_open_panel.bind("shop"))
+            _section("FIRESIDE CONVERSATIONS")
+            for actor_id: String in ["mira","lyra","kestrel"]:
+                _panel_button("TALK TO "+actor_id.to_upper(),_camp_talk.bind(actor_id))
+        "camp_story":
+            overlay_title.text = "FIRESIDE STORIES"
+            overlay_text.text = _last_camp_story
+            _panel_button("BACK TO CAMP",_open_panel.bind("camp"))
         "pack":
             overlay_title.text = "THE ADVENTURER'S PACK"
             var summary: Dictionary = game.bag.modifiers()
@@ -204,6 +212,14 @@ func _open_panel(kind: String) -> void:
             overlay_text.text = "THE END\n\nThe Star-Eater is no more. Hearthwood's fires settle, Glimmerfen's moon shines freely, and the Skyvault opens to a blue morning.\n\nRowan, Elira, and Caldor gather with your companions as the Hall of Ages records the names of the four who stood against the end of night.\n\nYour journey is complete. Adventure remains in the places you saved.\n\nCREDITS\nWorld, systems and original vector illustrations created for Ironbound Tactics.\nOriginal character and effect references supplied by the game creator.\nBuilt in Godot 4 with GDScript."
             _panel_button("VIEW YOUR ACHIEVEMENTS",_open_panel.bind("journal"))
             _panel_button("RETURN TO THE WORLD",_close_panel)
+
+func _camp_talk(actor_id: String) -> void:
+    var story: Dictionary = campaign.camp_conversation(actor_id)
+    if story.is_empty():
+        return
+    _last_camp_story = "%s\n\n%s" % [story["title"],story["text"]]
+    _save_world(true)
+    _open_panel("camp_story")
 
 func _purchase(product: String) -> void:
     if campaign.shop_purchase(product,game.bag):

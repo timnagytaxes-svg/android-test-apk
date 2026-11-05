@@ -22,6 +22,8 @@ var treasures_found: int = 0
 var party_wounds: Dictionary = {}
 var _dice := V4SecureDice.new()
 var achievements: Array[String] = []
+var bonds: Dictionary = {"mira": 0, "lyra": 0, "kestrel": 0}
+var stories := V6CompanionStories.new()
 
 func _init() -> void:
     for index: int in range(CHAPTERS):
@@ -48,6 +50,10 @@ func apply_battle_modifiers(battle: V3Battle) -> void:
         hero.defense += forge_armor * 2
     for unit: V3Unit in battle.units:
         if unit.faction == "party":
+            if bonds.has(unit.id):
+                unit.power += int(bonds[unit.id]) / 2
+                unit.max_mp += int(bonds[unit.id]) / 2
+                unit.mp = mini(unit.max_mp,unit.mp + int(bonds[unit.id]) / 2)
             unit.hp = maxi(1, battle.max_hp(unit) - int(party_wounds.get(unit.id, 0)))
         elif unit.alive() and difficulty == VETERAN_DIFFICULTY:
             unit.power += 2
@@ -135,6 +141,17 @@ func shop_purchase(product: String, bag: ModuleInventory) -> bool:
             changed.emit("The party rests at camp, recovering fully.")
     return true
 
+func camp_conversation(actor_id: String) -> Dictionary:
+    var dialogue: Dictionary = stories.conversation(actor_id, chapter)
+    if dialogue.is_empty():
+        return {}
+    if int(bonds.get(actor_id, 0)) < chapter + 1:
+        bonds[actor_id] = chapter + 1
+        changed.emit("%s's trust deepens. Their battle affinity has grown." % actor_id.capitalize())
+    if int(bonds["mira"]) >= 1 and int(bonds["lyra"]) >= 1 and int(bonds["kestrel"]) >= 1:
+        _award_badge("party_bonds")
+    return dialogue
+
 func _award_badge(id: String) -> void:
     if not achievements.has(id):
         achievements.append(id)
@@ -150,6 +167,10 @@ func journal() -> String:
         else:
             lines.append("  " + zone.objective_text())
         lines.append("")
+    lines.append("COMPANION BONDS")
+    for id: String in bonds.keys():
+        lines.append("  %s: Chapter %d bond" % [id.capitalize(),int(bonds[id])])
+    lines.append("")
     lines.append("WORLD STATS")
     lines.append("  Victories: %d    Defeats: %d" % [encounters_won, encounters_lost])
     lines.append("  Gold: %d    Rift Crystals: %d" % [gold, crystals])
@@ -170,7 +191,7 @@ func to_dict() -> Dictionary:
         "difficulty": difficulty, "reduced_motion": reduced_motion, "sound_enabled": sound_enabled,
         "encounters_won": encounters_won, "encounters_lost": encounters_lost,
         "treasures_found": treasures_found, "party_wounds": party_wounds.duplicate(),
-        "achievements": achievements.duplicate(), "zones": states}
+        "achievements": achievements.duplicate(), "bonds": bonds.duplicate(), "zones": states}
 
 func restore(data: Dictionary) -> bool:
     if int(data.get("schema",0)) != 1 or not data.get("zones") is Array or data["zones"].size() != CHAPTERS:
@@ -185,11 +206,17 @@ func restore(data: Dictionary) -> bool:
             return false
     if int(data["forge_power"]) > 4 or int(data["forge_armor"]) > 4:
         return false
-    if not data.get("party_wounds") is Dictionary or not data.get("achievements") is Array:
+    if not data.get("party_wounds") is Dictionary or not data.get("achievements") is Array or not data.get("bonds") is Dictionary:
         return false
     var saved_wounds: Dictionary = data["party_wounds"]
     for id: String in saved_wounds.keys():
         if id not in ["warden","mira","lyra","kestrel"] or int(saved_wounds[id]) < 0 or int(saved_wounds[id]) > 999:
+            return false
+    var saved_bonds: Dictionary = data["bonds"]
+    if saved_bonds.size() != 3:
+        return false
+    for id: String in ["mira","lyra","kestrel"]:
+        if not saved_bonds.has(id) or int(saved_bonds[id]) < 0 or int(saved_bonds[id]) > 3:
             return false
     var new_zones: Array[V6ZoneWorld] = []
     for i: int in range(CHAPTERS):
@@ -219,9 +246,10 @@ func restore(data: Dictionary) -> bool:
     reduced_motion = bool(data.get("reduced_motion",false))
     sound_enabled = bool(data.get("sound_enabled",true))
     party_wounds = saved_wounds.duplicate()
+    bonds = saved_bonds.duplicate()
     achievements.clear()
     for item: Variant in data["achievements"]:
         var key: String = str(item)
-        if not achievements.has(key) and key in ["first_victory", "boss_slayer", "first_forge", "stars_reclaimed", "treasure_hunter"]:
+        if not achievements.has(key) and key in ["first_victory", "boss_slayer", "first_forge", "stars_reclaimed", "treasure_hunter", "party_bonds"]:
             achievements.append(key)
     return true
