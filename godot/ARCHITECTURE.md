@@ -1,20 +1,25 @@
-# Modular Android RPG slice
+# Ironbound Modular RPG Demo v2
 
-The playable slice exercises all six independent concerns:
-- Character: `ModuleActor` owns stats, action flags, and healing/damage primitives.
-- Combat: `ModuleCombat` is the only orchestrator that may change battle state.
-- Abilities: `ModuleAbilityRules` calculates damage without mutating state.
-- Tactical AI: `ModuleTacticalAI` returns action choices, never edits actors.
-- Inventory: `ModuleInventory` owns shared potion counts.
-- Persistence: `ModuleSaveStore` owns JSON file I/O and nothing else.
+## Modules
+- `ModuleActor`: immutable base stats and mutable combat state.
+- `ModuleCombat`: authoritative turn/action validation, damage, spells and equipment changes.
+- `ModuleAbilityRules`: costs and damage formulas. No direct state mutations.
+- `ModuleInventory`: catalog, bag, three equipment slots, bonuses and potion counts. Validation prevents item duplication.
+- `ModuleTacticalAI`: pure choices; ally heals low-HP player and enemies cast spells.
+- `ModuleSaveStore`: JSON persistence with schema 2; no network or account.
+- `ModuleCoordinator`: scene-facing API, event-driven snapshots, combat-to-visual notifications.
+- `BattleVisuals`: presentation only. Sprite textures, queued tweens and lightweight burst geometry.
+- `main.gd`: touch UI. Two tabs (battle and gear), no per-frame polling.
 
-`ModuleCoordinator` connects the modules once, publishes event-driven view snapshots, and schedules non-player turns using deferred calls. `main.gd` is presentation-only: it never modifies combatants.
+## Controls
+- Regular action: Attack, Arc Strike, Ember Bolt, Frost Shard, Mend, Guard, or change equipment.
+- Bonus action: Potion AFTER the regular action, only if injured.
+- End Turn: advances dynamic initiative.
+- Equipment tab: three slots, item swaps and unequip actions. Equipment changes spend regular action.
+- Save/Load: battle, items, equipment, statuses and RNG state stored locally.
 
-## Manual smoke test
-Start battle. Tap Potion first (unavailable). Use Arc Strike (consumes SP).
-Attack is now disabled, but End Turn works. Ashfang and Mira act automatically.
-Next round, Attack then Potion heals the Warden and consumes one item.
-Save, restart, load: HP, items, the current turn and action flags are restored.
-
-## Debug policy
-No per-frame scene tree scanning, polling, or global autoload singleton. State changes emit one `changed` signal. Tests run headlessly on each APK build.
+## Production follow-ups
+- Signing: CI currently creates a new debug key for each build, so Android may require uninstall before installing a later build.
+- Save compatibility: schema 2 intentionally does not load the previous schema 1 save.
+- Sprite assets are original handmade SVG pixel-style art, not copies of supplied reference images.
+- AI and visual effects are deliberately lightweight; more complex battle art and timelines can be added without changing combat rules.
