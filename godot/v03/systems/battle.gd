@@ -19,7 +19,7 @@ func _init(bag: ModuleInventory, custom_dice: V4SecureDice = null) -> void:
     if custom_dice != null:
         dice = custom_dice
 
-func create(progression: V4Progression = null) -> void:
+func create(progression: V4Progression = null, encounter_id: String = "boss") -> void:
     units = [
         V3Unit.new("warden", "Warden", "party", "warrior", 42, 6, 3, 12, 4),
         V3Unit.new("mira", "Mira", "party", "cleric", 31, 4, 1, 9, 5),
@@ -29,6 +29,14 @@ func create(progression: V4Progression = null) -> void:
         V3Unit.new("raider", "Ash Raider", "enemy", "raider", 33, 5, 1, 10, 3),
         V3Unit.new("shaman", "Ash Shaman", "enemy", "shaman", 30, 4, 1, 7, 4)
     ]
+    # Reuse the battle rules for individual overworld patrols and the final boss.
+    # The default encounter remains unchanged for all earlier regression tests.
+    if encounter_id == "raider":
+        unit_by_id("ashfang").hp = 0
+        unit_by_id("shaman").hp = 0
+    elif encounter_id == "shaman":
+        unit_by_id("ashfang").hp = 0
+        unit_by_id("raider").hp = 0
     round = 1
     index = 0
     finished = false
@@ -38,7 +46,7 @@ func create(progression: V4Progression = null) -> void:
             progression.apply(member)
     _reorder()
     active_unit().begin_turn()
-    changed.emit("The party confronts Ashfang and his retainers!")
+    changed.emit("Battle begins: %s!" % (encounter_id.capitalize() if encounter_id != "boss" else "Ashfang and his retainers"))
 
 func unit_by_id(key: String) -> V3Unit:
     for unit: V3Unit in units:

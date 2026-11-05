@@ -1,5 +1,10 @@
 extends Control
 
+signal return_to_world
+
+# Injected only by the v0.5 world. Standalone v0.4 behavior is unchanged.
+var injected_game: V3Coordinator = null
+
 var game: V3Coordinator
 var stage: V3Stage
 var turn_label: Label
@@ -22,12 +27,18 @@ var gear_cache: String = ""
 
 func _ready() -> void:
     _build()
-    game = V3Coordinator.new()
-    add_child(game)
+    if injected_game == null:
+        game = V3Coordinator.new()
+        add_child(game)
+    else:
+        game = injected_game
     game.state_changed.connect(_render)
     game.animate.connect(stage.show_action)
     stage.unit_tapped.connect(_select_target)
-    game.new_encounter()
+    if injected_game == null:
+        game.new_encounter()
+    else:
+        game._publish()
 
 func _build() -> void:
     var background := ColorRect.new()
@@ -42,7 +53,7 @@ func _build() -> void:
     var main := VBoxContainer.new()
     main.add_theme_constant_override("separation", 7)
     pad.add_child(main)
-    var heading := _label("IRONBOUND TACTICS  •  v0.4", 27, Color("#f2d18c"))
+    var heading := _label("IRONBOUND TACTICS  •  v0.5", 27, Color("#f2d18c"))
     heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     main.add_child(heading)
     turn_label = _label("",20,Color.WHITE)
@@ -167,7 +178,8 @@ func _make_equipment_layer() -> void:
     utilities.add_theme_constant_override("h_separation",8)
     utilities.add_theme_constant_override("v_separation",8)
     body.add_child(utilities)
-    for title: String in ["SAVE","LOAD","NEXT ENCOUNTER","NEW CAMPAIGN"]:
+    var utility_actions: Array[String] = ["SAVE","LOAD","NEXT ENCOUNTER","NEW CAMPAIGN"] if injected_game == null else ["RETURN TO WORLD"]
+    for title: String in utility_actions:
         var b: Button = _button(title,18,55)
         utilities.add_child(b)
         b.pressed.connect(_utility.bind(title))
@@ -270,6 +282,11 @@ func _utility(title: String) -> void:
             _clear_targeting()
             game.new_encounter(true)
             equip_layer.visible = false
+        "RETURN TO WORLD":
+            if game.battle.finished:
+                return_to_world.emit()
+            else:
+                equip_message.text = "Finish the encounter before returning to the world."
     if title in ["SAVE", "LOAD"]:
         equip_message.text = title + " command processed."
     _refresh_gear(true)
@@ -306,7 +323,7 @@ func _render(state: Dictionary, messages: Array[String]) -> void:
     stage.refresh(state)
     if bool(state["finished"]):
         _clear_targeting()
-        prompt.text = "Battle complete: %s. Open EQUIP → NEXT ENCOUNTER to keep XP and gear." % str(state["result"])
+        prompt.text = ("Battle complete: %s. Open EQUIP → RETURN TO WORLD." if injected_game != null else "Battle complete: %s. Open EQUIP → NEXT ENCOUNTER.") % str(state["result"])
     elif actor != null and actor.id != "warden":
         if not pending.is_empty():
             _clear_targeting()

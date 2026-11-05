@@ -15,7 +15,7 @@ var generation: int = 0
 var _ai_busy: bool = false
 var _ai_pending: bool = false
 
-func new_encounter(reset_campaign: bool = false) -> void:
+func new_encounter(reset_campaign: bool = false, encounter_id: String = "boss") -> void:
     generation += 1
     feed.clear()
     if reset_campaign:
@@ -24,7 +24,7 @@ func new_encounter(reset_campaign: bool = false) -> void:
         bag = ModuleInventory.new()
     _rewarded = false
     _replace(V3Battle.new(bag))
-    battle.create(progression)
+    battle.create(progression, encounter_id)
     _schedule_ai()
 
 func choose_class(klass: String) -> bool:
