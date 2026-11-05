@@ -12,6 +12,7 @@ var story_title: Label
 var menu_row: HBoxContainer
 var _returning: bool = false
 var _last_camp_story: String = ""
+var _last_notice: String = ""
 var _save_store := V6SaveStore.new()
 var _sound: V6Sound
 
@@ -205,8 +206,18 @@ func _open_panel(kind: String) -> void:
             _panel_button("VETERAN DIFFICULTY",_difficulty.bind(1))
             _panel_button("REDUCE COMBAT MOTION: %s" % ("ON" if campaign.reduced_motion else "OFF"),_toggle_motion)
             _panel_button("MUSIC & EFFECTS: %s" % ("ON" if campaign.sound_enabled else "OFF"),_toggle_sound)
-            _panel_button("NEW GAME (UNSAVED PROGRESS RESETS)",_reset_campaign)
+            _panel_button("START A NEW GAME",_open_panel.bind("confirm_reset"))
             _section("Current difficulty: %s" % ("Veteran" if campaign.difficulty == 1 else "Story"))
+        "confirm_reset":
+            overlay_title.text = "START A NEW ADVENTURE?"
+            overlay_text.text = "Your unsaved progress will be lost. Existing save slots remain intact until deliberately overwritten.\nThis cannot be undone."
+            _panel_button("YES, START A NEW ADVENTURE",_reset_campaign)
+            _panel_button("CANCEL",_open_panel.bind("settings"))
+        "confirm_save":
+            overlay_title.text = "OVERWRITE THIS SAVE SLOT?"
+            overlay_text.text = "Slot %d already contains an adventure. An earlier save is retained as an automatic backup." % save_slot
+            _panel_button("YES, SAVE TO THIS SLOT",_slot_save_confirmed)
+            _panel_button("CANCEL",_open_panel.bind("slots"))
         "ending":
             overlay_title.text = "THE DAWN OF IRONBOUND"
             overlay_text.text = "THE END\n\nThe Star-Eater is no more. Hearthwood's fires settle, Glimmerfen's moon shines freely, and the Skyvault opens to a blue morning.\n\nRowan, Elira, and Caldor gather with your companions as the Hall of Ages records the names of the four who stood against the end of night.\n\nYour journey is complete. Adventure remains in the places you saved.\n\nCREDITS\nWorld, systems and original vector illustrations created for Ironbound Tactics.\nOriginal character and effect references supplied by the game creator.\nBuilt in Godot 4 with GDScript."
@@ -228,6 +239,8 @@ func _purchase(product: String) -> void:
         _save_world(true)
     _refresh()
     _open_panel("camp" if overlay_mode == "camp" else "shop")
+    if not _last_notice.is_empty():
+        overlay_text.text += "\n\nLAST TRANSACTION: " + _last_notice
 
 func _equip_world(item_id: String) -> void:
     if game.bag.equip(item_id):
@@ -248,7 +261,14 @@ func _slot_selected(index: int) -> void:
     _open_panel("slots")
 
 func _slot_save() -> void:
+    if FileAccess.file_exists(_save_store.slot_path(save_slot)):
+        _open_panel("confirm_save")
+        return
+    _slot_save_confirmed()
+
+func _slot_save_confirmed() -> void:
     var ok: bool = _save_world()
+    _open_panel("slots")
     overlay_text.text = "Adventure saved to Slot %d." % save_slot if ok else "Save failed. Check device storage."
 
 func _slot_load() -> void:
@@ -285,6 +305,7 @@ func _toggle_motion() -> void:
 func _reset_campaign() -> void:
     _stop_walk()
     campaign = V6Campaign.new()
+    _last_notice = ""
     campaign.changed.connect(_on_campaign_changed)
     game.generation += 1
     game.bag = ModuleInventory.new()
@@ -297,6 +318,7 @@ func _reset_campaign() -> void:
     _refresh()
 
 func _on_campaign_changed(message: String) -> void:
+    _last_notice = message
     _message = message
     _refresh()
 
