@@ -96,6 +96,23 @@ func _exercise() -> void:
     await process_frame
     _check(not game.is_player_turn(),"Bonus action ends the spent turn automatically")
 
+    # Repeatable challenges must leave the main story untouched.
+    director = screen.get("campaign") as V6Campaign
+    var chapter_flags: Dictionary = director.current_zone().cleared.duplicate()
+    var bounties_before: int = director.bounty_victories
+    screen.call("_start_bounty","shaman")
+    await process_frame
+    _check(screen.get("battle_layer").visible,"Optional bounty opens an actual battle")
+    _check(bool(screen.get("_bounty_active")),"Bounty encounter tracked separately")
+    game.battle.finished = true
+    game.battle.result = "VICTORY"
+    game._publish()
+    await process_frame
+    await process_frame
+    _check(screen.get("battle_screen") == null,"Bounty returns to map without an EQUIP detour")
+    _check(director.bounty_victories == bounties_before + 1,"Bounty victory awards separate progress")
+    _check(director.current_zone().cleared == chapter_flags,"Bounties never clear story encounters")
+
     game.generation += 1
     screen.queue_free()
     await process_frame

@@ -82,6 +82,11 @@ func _init() -> void:
     _check(story_bonus.unit_by_id("mira").power > old_companion_power,
         "Companion bonds provide battle bonuses without changing base progression")
 
+    for i: int in range(5):
+        campaign.complete_bounty(true)
+    _check(campaign.bounty_victories == 5,"Five replayable bounty challenges tracked")
+    _check(campaign.achievements.has("bounty_hunter"),"Bounty hunter achievement unlocked")
+
     var save: Dictionary = campaign.to_dict()
     var revived := V6Campaign.new()
     _check(revived.restore(save),"Campaign restores three areas")

@@ -21,3 +21,10 @@ A three-chapter, offline, Android-first JRPG **pre-release**. GitHub Actions per
 - Each chapter contains a mentor, two sentinels, a boss, a chest and a forward gate. The final chapter resolves in a credits epilogue.
 - Camp rest, merchant potions and forging upgrades, persistent wounds, achievements, class upgrades, 3 save slots and reduced-motion / difficulty controls.
 - The save schema is 6 and does **not** silently import v0.5 saves. The v0.6 Android package name intentionally differs from prior debug APKs to prevent signature conflicts.
+
+## Added replayability and presentation
+- Optional repeatable hunter bounties give gold, crystal drops and XP without changing story quest completion.
+- Original three-region vector-pixel overworld, illustrated title artwork, chapter-specific battlefield color schemes and synthesized background themes / sound effects.
+- Nine companion conversations across three acts. Optional relationships grant small future encounter bonuses.
+- Safe menu flows: confirmation for new games and manual overwrites, backup slot recovery, automatic world saves on victory and defeat.
+- **Not yet retail-certified:** UI, narrative, localization, balance, audio, accessibility, device compatibility and store metadata still require human review.
