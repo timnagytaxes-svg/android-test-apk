@@ -12,12 +12,14 @@ var finished: bool = false
 var result: String = ""
 var inventory: ModuleInventory
 var abilities := V3Abilities.new()
-var rng := RandomNumberGenerator.new()
+var dice: V4SecureDice = V4SecureDice.new()
 
-func _init(bag: ModuleInventory) -> void:
+func _init(bag: ModuleInventory, custom_dice: V4SecureDice = null) -> void:
     inventory = bag
+    if custom_dice != null:
+        dice = custom_dice
 
-func create() -> void:
+func create(progression: V4Progression = null) -> void:
     units = [
         V3Unit.new("warden", "Warden", "party", "warrior", 42, 6, 3, 12, 4),
         V3Unit.new("mira", "Mira", "party", "cleric", 31, 4, 1, 9, 5),
@@ -31,7 +33,9 @@ func create() -> void:
     index = 0
     finished = false
     result = ""
-    rng.randomize()
+    if progression != null:
+        for member: V3Unit in units:
+            progression.apply(member)
     _reorder()
     active_unit().begin_turn()
     changed.emit("The party confronts Ashfang and his retainers!")
@@ -71,6 +75,12 @@ func can_act(kind: String, target_id: String = "") -> bool:
         return false
     if actor.mp < int(definition["cost"]):
         return false
+    if kind in ["cleave", "surge", "bastion"]:
+        if actor.id != "warden" or actor.level < 2:
+            return false
+        var required: Dictionary = {"cleave": "vanguard", "surge": "spellblade", "bastion": "bulwark"}
+        if actor.role != required[kind]:
+            return false
     if target_id.is_empty():
         return not abilities.targets(kind, actor, units).is_empty()
     var target: V3Unit = unit_by_id(target_id)
@@ -94,22 +104,31 @@ func execute(kind: String, target_id: String) -> bool:
         actor.action_used = true
     actor.mp -= int(definition["cost"])
     var amount: int = 0
-    if kind == "guard":
+    var die_total: int = 0
+    var critical: bool = false
+    if kind in ["guard", "bastion"]:
         actor.guarding = true
+        if kind == "bastion":
+            actor.mp = mini(actor.max_mp, actor.mp + 1)
     elif kind in ["mend", "potion"]:
-        amount = target.heal(14 if kind == "potion" else (13 + rng.randi_range(0, 4)), max_hp(target))
+        amount = target.heal(14 if kind == "potion" else (10 + dice.roll(6)), max_hp(target))
     else:
-        var base: int = 3 + attack_power(actor) + rng.randi_range(0, 4)
-        if kind == "arc":
+        # Every hit receives secure 2d6 damage and an independent d20 crit check.
+        die_total = dice.roll(6) + dice.roll(6)
+        critical = dice.roll(20) == 20
+        var base: int = attack_power(actor) + die_total
+        if kind in ["arc", "cleave", "surge"]:
             base += 6
         elif kind == "ember":
             base += 5
         elif kind == "frost":
             base += 2
+        if critical:
+            base += die_total
         if actor.chilled > 0:
             base -= 2
         var mitigation: int = armor(target)
-        if kind in ["ember", "frost"]:
+        if kind in ["ember", "frost", "surge"]:
             mitigation = int(ceil(float(mitigation) * 0.5))
         if target.guarding:
             base -= 5
@@ -119,11 +138,16 @@ func execute(kind: String, target_id: String) -> bool:
     actor.chilled = maxi(0, actor.chilled - 1)
     _check_end()
     action_resolved.emit({"kind": kind, "style": str(definition["style"]), "source": actor.id,
-        "target": target.id, "amount": amount, "healing": kind in ["mend", "potion"]})
+        "target": target.id, "amount": amount, "healing": kind in ["mend", "potion"],
+        "critical": critical, "dice_total": die_total})
     var verb: String = "recovers" if kind in ["mend", "potion"] else "deals"
     var summary: String = "%s: %s on %s (%s %d)." % [actor.name, definition["name"], target.name, verb, amount]
-    if kind == "guard":
+    if kind in ["guard", "bastion"]:
         summary = "%s braces against incoming attacks." % actor.name
+    elif critical:
+        summary += " CRITICAL HIT! (2d6 = %d)" % die_total
+    elif kind not in ["mend", "potion"]:
+        summary += " (2d6 = %d)" % die_total
     if finished:
         summary += " " + result
     changed.emit(summary)
@@ -190,7 +214,8 @@ func snapshot() -> Dictionary:
     for unit: V3Unit in units:
         actors.append({"id": unit.id, "name": unit.name, "faction": unit.faction, "role": unit.role,
             "hp": unit.hp, "max_hp": max_hp(unit), "mp": unit.mp, "max_mp": unit.max_mp,
-            "guarding": unit.guarding, "chilled": unit.chilled, "power": attack_power(unit), "armor": armor(unit)})
+            "guarding": unit.guarding, "chilled": unit.chilled, "power": attack_power(unit), "armor": armor(unit),
+            "level": unit.level, "xp": unit.experience, "class": unit.role})
     return {"actors": actors, "order": order.duplicate(), "index": index, "round": round,
         "finished": finished, "result": result, "potions": inventory.potions,
         "equipment": inventory.equipped.duplicate(), "bag": inventory.bag.duplicate()}
@@ -200,7 +225,7 @@ func serialize() -> Dictionary:
     for unit: V3Unit in units:
         actors.append(unit.serialize())
     return {"actors": actors,"order": order.duplicate(),"index": index,"round": round,
-        "finished": finished,"result": result,"seed": str(rng.state)}
+        "finished": finished,"result": result}
 
 func restore(data: Dictionary) -> bool:
     var actors: Variant = data.get("actors", [])
@@ -233,6 +258,6 @@ func restore(data: Dictionary) -> bool:
     result = str(data.get("result", ""))
     if not finished and not active_unit().alive():
         return false
-    rng.state = int(data.get("seed", "0"))
+    # CSPRNG state is never serialized. Future rolls remain unpredictable.
     changed.emit("Battle restored, including the turn queue.")
     return true

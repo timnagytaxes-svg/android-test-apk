@@ -8,6 +8,9 @@ const DATA: Dictionary = {
     "frost": {"name": "Frost Shard", "cost": 2, "type": "damage", "target": "foe", "style": "ice"},
     "mend": {"name": "Mend", "cost": 2, "type": "heal", "target": "ally", "style": "heal"},
     "guard": {"name": "Defend", "cost": 0, "type": "guard", "target": "self", "style": "guard"},
+    "cleave": {"name": "Sweeping Blow", "cost": 2, "type": "damage", "target": "foe", "style": "slash"},
+    "surge": {"name": "Arc Surge", "cost": 2, "type": "damage", "target": "foe", "style": "arc"},
+    "bastion": {"name": "Iron Bastion", "cost": 1, "type": "guard", "target": "self", "style": "guard"},
     "potion": {"name": "Potion", "cost": 0, "type": "heal", "target": "ally", "style": "heal", "bonus": true}
 }
 

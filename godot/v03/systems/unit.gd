@@ -12,6 +12,8 @@ var defense: int
 var speed: int
 var mp: int
 var max_mp: int
+var level: int = 1
+var experience: int = 0
 var chilled: int = 0
 var guarding: bool = false
 var action_used: bool = false
@@ -54,11 +56,11 @@ func heal(amount: int, cap: int) -> int:
     return recovered
 
 func serialize() -> Dictionary:
-    return {"id": id,"hp": hp,"mp": mp,"chilled": chilled,"guarding": guarding,
+    return {"id": id,"hp": hp,"mp": mp,"level": level,"chilled": chilled,"guarding": guarding,
         "action_used": action_used,"bonus_used": bonus_used}
 
 func restore(data: Dictionary, cap: int) -> bool:
-    if str(data.get("id", "")) != id:
+    if str(data.get("id", "")) != id or int(data.get("level", level)) != level:
         return false
     var new_hp: int = int(data.get("hp", -1))
     var new_mp: int = int(data.get("mp", -1))
