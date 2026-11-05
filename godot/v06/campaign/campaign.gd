@@ -18,6 +18,7 @@ var reduced_motion: bool = false
 var sound_enabled: bool = true
 var encounters_won: int = 0
 var encounters_lost: int = 0
+var bounty_victories: int = 0
 var treasures_found: int = 0
 var party_wounds: Dictionary = {}
 var _dice := V4SecureDice.new()
@@ -152,6 +153,15 @@ func camp_conversation(actor_id: String) -> Dictionary:
         _award_badge("party_bonds")
     return dialogue
 
+func complete_bounty(victory: bool) -> void:
+    if victory:
+        bounty_victories += 1
+        if bounty_victories >= 5:
+            _award_badge("bounty_hunter")
+        changed.emit("Bounty cleared! %d total victories on the bounty board." % bounty_victories)
+    else:
+        changed.emit("Bounty failed. You can retry from any settlement.")
+
 func _award_badge(id: String) -> void:
     if not achievements.has(id):
         achievements.append(id)
@@ -172,7 +182,7 @@ func journal() -> String:
         lines.append("  %s: Chapter %d bond" % [id.capitalize(),int(bonds[id])])
     lines.append("")
     lines.append("WORLD STATS")
-    lines.append("  Victories: %d    Defeats: %d" % [encounters_won, encounters_lost])
+    lines.append("  Victories: %d    Defeats: %d    Bounties: %d" % [encounters_won, encounters_lost, bounty_victories])
     lines.append("  Gold: %d    Rift Crystals: %d" % [gold, crystals])
     lines.append("  Weapon forging: %d / 4    Armor forging: %d / 4" % [forge_power, forge_armor])
     lines.append("")
@@ -189,7 +199,7 @@ func to_dict() -> Dictionary:
     return {"schema": 1, "chapter": chapter, "gold": gold, "crystals": crystals,
         "forge_power": forge_power, "forge_armor": forge_armor,
         "difficulty": difficulty, "reduced_motion": reduced_motion, "sound_enabled": sound_enabled,
-        "encounters_won": encounters_won, "encounters_lost": encounters_lost,
+        "encounters_won": encounters_won, "encounters_lost": encounters_lost, "bounty_victories": bounty_victories,
         "treasures_found": treasures_found, "party_wounds": party_wounds.duplicate(),
         "achievements": achievements.duplicate(), "bonds": bonds.duplicate(), "zones": states}
 
@@ -241,6 +251,7 @@ func restore(data: Dictionary) -> bool:
     forge_armor = int(data["forge_armor"])
     encounters_won = int(data["encounters_won"])
     encounters_lost = int(data["encounters_lost"])
+    bounty_victories = clampi(int(data.get("bounty_victories",0)),0,1000000)
     treasures_found = maxi(0, int(data.get("treasures_found",0)))
     difficulty = mode
     reduced_motion = bool(data.get("reduced_motion",false))
@@ -250,6 +261,6 @@ func restore(data: Dictionary) -> bool:
     achievements.clear()
     for item: Variant in data["achievements"]:
         var key: String = str(item)
-        if not achievements.has(key) and key in ["first_victory", "boss_slayer", "first_forge", "stars_reclaimed", "treasure_hunter", "party_bonds"]:
+        if not achievements.has(key) and key in ["first_victory", "boss_slayer", "first_forge", "stars_reclaimed", "treasure_hunter", "party_bonds", "bounty_hunter"]:
             achievements.append(key)
     return true

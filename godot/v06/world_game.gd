@@ -11,6 +11,7 @@ var overlay_mode: String = ""
 var story_title: Label
 var menu_row: HBoxContainer
 var _returning: bool = false
+var _bounty_active: bool = false
 var _last_camp_story: String = ""
 var _last_notice: String = ""
 var _save_store := V6SaveStore.new()
@@ -155,14 +156,24 @@ func _open_panel(kind: String) -> void:
             _panel_button("FORGE ARMOR +2 ARMOR  •  %d GOLD + 2 CRYSTALS" % (90+campaign.forge_armor*70),_purchase.bind("forge_armor"))
             _section("CAMP")
             _panel_button("REST AND RECOVER  •  15 GOLD",_purchase.bind("rest"))
+            _section("BOUNTY BOARD")
+            _panel_button("OPEN BOUNTY BOARD",_open_panel.bind("bounties"))
         "camp":
             overlay_title.text = "THE FIRESIDE CAMP"
             overlay_text.text = "Your companions share food and stories beneath the stars.\nGold: %d\nPersistent wounds: %s" % [campaign.gold, JSON.stringify(campaign.party_wounds)]
             _panel_button("REST FULL PARTY  •  15 GOLD",_purchase.bind("rest"))
             _panel_button("OPEN MERCHANT",_open_panel.bind("shop"))
+            _panel_button("BOUNTY BOARD",_open_panel.bind("bounties"))
             _section("FIRESIDE CONVERSATIONS")
             for actor_id: String in ["mira","lyra","kestrel"]:
                 _panel_button("TALK TO "+actor_id.to_upper(),_camp_talk.bind(actor_id))
+        "bounties":
+            overlay_title.text = "THE HUNTER'S BOARD"
+            overlay_text.text = "Optional repeatable tactical trials. Earn XP, gold and Rift Crystals without changing main-quest flags.\nThe enemies grow tougher as your party levels. Bounties completed: %d" % campaign.bounty_victories
+            _panel_button("RAIDER HUNT  •  SCOUT PATROL",_start_bounty.bind("raider"))
+            _panel_button("MAGE HUNT  •  SPELLCASTER PATROL",_start_bounty.bind("shaman"))
+            _panel_button("MONSTER HUNT  •  BOSS CHALLENGE",_start_bounty.bind("boss"))
+            _panel_button("RETURN TO MERCHANT",_open_panel.bind("shop"))
         "camp_story":
             overlay_title.text = "FIRESIDE STORIES"
             overlay_text.text = _last_camp_story
@@ -223,6 +234,21 @@ func _open_panel(kind: String) -> void:
             overlay_text.text = "THE END\n\nThe Star-Eater is no more. Hearthwood's fires settle, Glimmerfen's moon shines freely, and the Skyvault opens to a blue morning.\n\nRowan, Elira, and Caldor gather with your companions as the Hall of Ages records the names of the four who stood against the end of night.\n\nYour journey is complete. Adventure remains in the places you saved.\n\nCREDITS\nWorld, systems and original vector illustrations created for Ironbound Tactics.\nOriginal character and effect references supplied by the game creator.\nBuilt in Godot 4 with GDScript."
             _panel_button("VIEW YOUR ACHIEVEMENTS",_open_panel.bind("journal"))
             _panel_button("RETURN TO THE WORLD",_close_panel)
+
+func _start_bounty(kind: String) -> void:
+    if kind not in ["raider","shaman","boss"] or not _active_encounter.is_empty():
+        return
+    _bounty_active = true
+    _launch_battle(kind)
+    if game.battle != null:
+        var level: int = int(game.progression.heroes["warden"]["level"])
+        for enemy: V3Unit in game.battle.units:
+            if enemy.faction == "enemy" and enemy.alive():
+                var bonus_hp: int = maxi(0,level-1)*6
+                enemy.health += bonus_hp
+                enemy.hp += bonus_hp
+                enemy.power += int(level/3)
+        game._publish()
 
 func _camp_talk(actor_id: String) -> void:
     var story: Dictionary = campaign.camp_conversation(actor_id)
@@ -416,7 +442,21 @@ func _return_from_battle() -> void:
     if _sound != null:
         _sound.play_sfx("victory" if result else "defeat")
         _sound.set_theme("world")
-    super._return_from_battle()
+    if _bounty_active:
+        campaign.complete_bounty(result)
+        _bounty_active = false
+        _active_encounter = ""
+        if battle_screen != null:
+            battle_layer.remove_child(battle_screen)
+            battle_screen.queue_free()
+            battle_screen = null
+        battle_layer.visible = false
+        world_layer.visible = true
+        _message = "Bounty complete. Rewards and XP kept!" if result else "Bounty failed. Your party was rescued."
+        if result:
+            _save_world(true)
+    else:
+        super._return_from_battle()
     _returning = false
     _refresh()
 
