@@ -119,7 +119,9 @@ func inspect(inventory: ModuleInventory) -> Dictionary:
     return {"kind": "none"}
 
 func finish_encounter(encounter: String, victory: bool) -> bool:
-    if not ENCOUNTERS.has(encounter) or bool(cleared[encounter]):
+    if not ENCOUNTERS.has(encounter) or bool(cleared[encounter]) or not quest_started:
+        return false
+    if encounter == "boss" and (not bool(cleared["raider"]) or not bool(cleared["shaman"])):
         return false
     if victory:
         cleared[encounter] = true
