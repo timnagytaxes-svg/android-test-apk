@@ -90,6 +90,13 @@ jobs:
           timeout 60s "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path godot --script res://v04/tests/smoke.gd 2>&1 | tee /tmp/v04-tests.txt
           grep -q "V04 ALL PROGRESSION AND SECURE DICE TESTS PASSED" /tmp/v04-tests.txt
           if grep -E 'SCRIPT ERROR|Parse Error|FAIL V04:' /tmp/v04-tests.txt; then exit 1; fi
+      - name: Run v0.5 world navigation quest and encounter tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 60s "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path godot --script res://v05/tests/smoke.gd 2>&1 | tee /tmp/v05-tests.txt
+          grep -q "V05 WORLD QUESTS AND ENCOUNTER TESTS PASSED" /tmp/v05-tests.txt
+          if grep -E 'SCRIPT ERROR|Parse Error|FAIL V05:' /tmp/v05-tests.txt; then exit 1; fi
       - name: Check main scene boots
         shell: bash
         run: |
@@ -104,12 +111,12 @@ jobs:
           export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$GITHUB_WORKSPACE/godot/debug.keystore"
           export GODOT_ANDROID_KEYSTORE_DEBUG_USER="androiddebugkey"
           export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="android"
-          "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --verbose --path godot --export-debug "Android" "$GITHUB_WORKSPACE/build/Ironbound_Tactics_v0_4.apk" 2>&1 | tee /tmp/godot-export.txt
+          "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --verbose --path godot --export-debug "Android" "$GITHUB_WORKSPACE/build/Ironbound_Tactics_v0_5.apk" 2>&1 | tee /tmp/godot-export.txt
           if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' /tmp/godot-export.txt; then exit 1; fi
-          test -s build/Ironbound_Tactics_v0_4.apk
+          test -s build/Ironbound_Tactics_v0_5.apk
       - name: Upload Godot APK
         uses: actions/upload-artifact@v4
         with:
-          name: ironbound-tactics-v04
-          path: build/Ironbound_Tactics_v0_4.apk
+          name: ironbound-tactics-v05
+          path: build/Ironbound_Tactics_v0_5.apk
           if-no-files-found: error
