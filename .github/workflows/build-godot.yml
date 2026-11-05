@@ -68,7 +68,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --editor --path godot --import --quit
+          "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --editor --path godot --import --quit 2>&1 | tee /tmp/godot-import.txt
+          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' /tmp/godot-import.txt; then exit 1; fi
       - name: Run modular system tests
         shell: bash
         run: |
@@ -79,7 +80,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path godot --quit-after 5
+          "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path godot --quit-after 5 2>&1 | tee /tmp/godot-boot.txt
+          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call|Invalid access' /tmp/godot-boot.txt; then exit 1; fi
       - name: Export debug APK
         shell: bash
         run: |
@@ -88,7 +90,8 @@ jobs:
           export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$GITHUB_WORKSPACE/godot/debug.keystore"
           export GODOT_ANDROID_KEYSTORE_DEBUG_USER="androiddebugkey"
           export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="android"
-          "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --verbose --path godot --export-debug "Android" "$GITHUB_WORKSPACE/build/godot-test.apk"
+          "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --verbose --path godot --export-debug "Android" "$GITHUB_WORKSPACE/build/godot-test.apk" 2>&1 | tee /tmp/godot-export.txt
+          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' /tmp/godot-export.txt; then exit 1; fi
           test -s build/godot-test.apk
       - name: Upload Godot APK
         uses: actions/upload-artifact@v4
