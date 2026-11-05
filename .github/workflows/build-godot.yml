@@ -69,6 +69,16 @@ jobs:
         run: |
           set -euo pipefail
           "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --editor --path godot --import --quit
+      - name: Run modular system tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path godot --script res://tests/test_modules.gd
+      - name: Check main scene boots
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path godot --quit-after 5
       - name: Export debug APK
         shell: bash
         run: |
