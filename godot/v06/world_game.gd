@@ -12,12 +12,16 @@ var story_title: Label
 var menu_row: HBoxContainer
 var _returning: bool = false
 var _save_store := V6SaveStore.new()
+var _sound: V6Sound
 
 func _ready() -> void:
     super._ready()
     _install_world()
     _install_menu()
     _install_overlay()
+    _sound = V6Sound.new()
+    add_child(_sound)
+    game.animate.connect(_play_combat_sound)
     _refresh()
     _open_panel("title")
 
@@ -192,6 +196,7 @@ func _open_panel(kind: String) -> void:
             _panel_button("STORY DIFFICULTY",_difficulty.bind(0))
             _panel_button("VETERAN DIFFICULTY",_difficulty.bind(1))
             _panel_button("REDUCE COMBAT MOTION: %s" % ("ON" if campaign.reduced_motion else "OFF"),_toggle_motion)
+            _panel_button("MUSIC & EFFECTS: %s" % ("ON" if campaign.sound_enabled else "OFF"),_toggle_sound)
             _panel_button("NEW GAME (UNSAVED PROGRESS RESETS)",_reset_campaign)
             _section("Current difficulty: %s" % ("Veteran" if campaign.difficulty == 1 else "Story"))
         "ending":
@@ -202,6 +207,8 @@ func _open_panel(kind: String) -> void:
 
 func _purchase(product: String) -> void:
     if campaign.shop_purchase(product,game.bag):
+        if _sound != null:
+            _sound.play_sfx("shop")
         _save_world(true)
     _refresh()
     _open_panel("camp" if overlay_mode == "camp" else "shop")
@@ -241,6 +248,19 @@ func _difficulty(value: int) -> void:
     _refresh()
     _open_panel("settings")
 
+func _toggle_sound() -> void:
+    campaign.sound_enabled = not campaign.sound_enabled
+    if _sound != null:
+        _sound.set_enabled(campaign.sound_enabled)
+    _save_world(true)
+    _open_panel("settings")
+
+func _play_combat_sound(event: Dictionary) -> void:
+    if _sound == null:
+        return
+    var kind: String = str(event.get("kind","attack"))
+    _sound.play_sfx("potion" if kind in ["mend","potion"] else ("spell" if kind in ["ember","frost","arc","surge"] else "hit"))
+
 func _toggle_motion() -> void:
     campaign.reduced_motion = not campaign.reduced_motion
     _save_world(true)
@@ -254,6 +274,8 @@ func _reset_campaign() -> void:
     game.bag = ModuleInventory.new()
     game.progression = V4Progression.new()
     _change_world(campaign.current_zone())
+    if _sound != null:
+        _sound.set_enabled(true)
     _message = "A new adventure begins. Your saved slot remains until you save again."
     _close_panel()
     _refresh()
@@ -284,11 +306,19 @@ func _refresh() -> void:
 func _interact_here() -> void:
     var place: String = (world as V6ZoneWorld).location_id(world.player)
     match place:
-        "merchant": _open_panel("shop")
-        "camp": _open_panel("camp")
+        "merchant":
+            if _sound != null:
+                _sound.play_sfx("ui")
+            _open_panel("shop")
+        "camp":
+            if _sound != null:
+                _sound.play_sfx("ui")
+            _open_panel("camp")
         "chronicle": _open_panel("journal")
         "gate_forward":
             if campaign.travel(campaign.chapter + 1):
+                if _sound != null:
+                    _sound.play_sfx("portal")
                 _stop_walk()
                 _change_world(campaign.current_zone())
                 _message = "A new chapter begins: " + str(V6ZoneWorld.ZONE_DATA[campaign.chapter]["story"])
@@ -298,6 +328,8 @@ func _interact_here() -> void:
             _refresh()
         "gate_back":
             if campaign.travel(campaign.chapter - 1):
+                if _sound != null:
+                    _sound.play_sfx("portal")
                 _stop_walk()
                 _change_world(campaign.current_zone())
                 _message = "You return to %s." % str(V6ZoneWorld.ZONE_DATA[campaign.chapter]["name"])
@@ -319,6 +351,8 @@ func _launch_battle(encounter: String) -> void:
         return
     _stop_walk()
     _close_panel()
+    if _sound != null:
+        _sound.set_theme("battle")
     _active_encounter = encounter
     _returning = false
     game.new_encounter(false, (world as V6ZoneWorld).battle_key(encounter))
@@ -341,6 +375,9 @@ func _return_from_battle() -> void:
     _returning = true
     var result: bool = game.battle.result == "VICTORY"
     campaign.record_battle(_active_encounter,result,game.battle)
+    if _sound != null:
+        _sound.play_sfx("victory" if result else "defeat")
+        _sound.set_theme("world")
     super._return_from_battle()
     _returning = false
     _refresh()
@@ -382,6 +419,8 @@ func _load_world() -> bool:
     game.progression = next_progress
     game.generation += 1
     _change_world(campaign.current_zone())
+    if _sound != null:
+        _sound.set_enabled(campaign.sound_enabled)
     _message = "Slot %d restored. Welcome back!" % save_slot
     _refresh()
     return true
