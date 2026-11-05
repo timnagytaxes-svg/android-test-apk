@@ -16,6 +16,8 @@ var selectable: Array[String] = []
 var _events: Array[Dictionary] = []
 var _running: bool = false
 var _latest: Dictionary = {}
+var _theme_tier: int = 0
+var reduced_motion: bool = false
 
 func _ready() -> void:
     custom_minimum_size = Vector2(0, 570)
@@ -100,11 +102,26 @@ func _layout_characters() -> void:
 func _draw() -> void:
     var w: float = size.x
     var h: float = size.y
-    draw_rect(Rect2(Vector2.ZERO, size), Color("#152636"))
+    var sky: Array[Color] = [Color("#183a51"),Color("#172d54"),Color("#281b4b")]
+    var hill: Array[Color] = [Color("#264753"),Color("#3c6074"),Color("#4b2b4e")]
+    var ground: Array[Color] = [Color("#59745c"),Color("#496e7c"),Color("#62505d")]
+    draw_rect(Rect2(Vector2.ZERO, size), sky[_theme_tier])
+    for i: int in range(14):
+        var line_y: float = h * float(i) / 14.0
+        draw_rect(Rect2(Vector2(0,line_y),Vector2(w,h/14.0+1)), sky[_theme_tier].lightened(0.025*float(i)))
+    # Original hand-painted vector style backdrop: distant mountain layers, moon and towers.
+    draw_circle(Vector2(w*0.77,h*0.15),h*0.10,Color("#e8d9b6",0.84))
+    draw_circle(Vector2(w*0.80,h*0.13),h*0.10,sky[_theme_tier])
+    for i: int in range(34):
+        var star_x: float = float((i*113+37)%997)/997.0*w
+        var star_y: float = float((i*79+11)%173)/400.0*h
+        draw_circle(Vector2(star_x,star_y),1.4,Color("#e4e7f3",0.5))
+    draw_colored_polygon(PackedVector2Array([Vector2(0,h*0.54),Vector2(w*0.2,h*0.11),Vector2(w*0.43,h*0.54)]),hill[_theme_tier])
+    draw_colored_polygon(PackedVector2Array([Vector2(w*0.25,h*0.55),Vector2(w*0.63,h*0.07),Vector2(w,h*0.55)]),hill[_theme_tier].darkened(0.20))
     draw_colored_polygon(PackedVector2Array([Vector2(0,h*0.55),Vector2(w*0.18,h*0.1),Vector2(w*0.38,h*0.55)]),Color("#213d46"))
     draw_colored_polygon(PackedVector2Array([Vector2(w*0.21,h*0.58),Vector2(w*0.50,h*0.06),Vector2(w*0.83,h*0.59)]),Color("#29404c"))
     draw_colored_polygon(PackedVector2Array([Vector2(w*0.60,h*0.56),Vector2(w*0.94,h*0.17),Vector2(w,h*0.45)]),Color("#26394e"))
-    draw_rect(Rect2(Vector2(0,h*0.56),Vector2(w,h*0.44)),Color("#4c5846"))
+    draw_rect(Rect2(Vector2(0,h*0.56),Vector2(w,h*0.44)),ground[_theme_tier])
     for i: int in range(13):
         var y: float = h*(0.57+float(i)*0.037)
         draw_line(Vector2(0,y),Vector2(w,y),Color("#73816c",0.35),1.6)
@@ -133,6 +150,17 @@ func set_targetable(ids: Array[String]) -> void:
 
 func refresh(snapshot: Dictionary) -> void:
     _latest = snapshot
+    var next_tier: int = clampi(int(snapshot.get("tier",0)),0,2)
+    if _theme_tier != next_tier:
+        _theme_tier = next_tier
+        queue_redraw()
+    var enemy_tints: Array[Color] = [Color("#f0a599"),Color("#91d8ee"),Color("#d49afa")]
+    for id: String in ["ashfang","raider","shaman"]:
+        var sprite_enemy: Sprite2D = sprites[id]
+        if id == "shaman":
+            sprite_enemy.modulate = enemy_tints[_theme_tier].lightened(0.11)
+        else:
+            sprite_enemy.modulate = enemy_tints[_theme_tier]
     for unit: Dictionary in snapshot.get("actors",[]):
         var id: String = str(unit["id"])
         if not sprites.has(id):
@@ -203,7 +231,7 @@ func _animate_next() -> void:
     add_child(fly)
     var tween: Tween = create_tween()
     tween.set_parallel(true)
-    tween.tween_property(attacker,"position",start+(target_at-start).normalized()*19.0,0.18)
+    tween.tween_property(attacker,"position",start+(target_at-start).normalized()*(8.0 if reduced_motion else 19.0),0.10 if reduced_motion else 0.18)
     tween.tween_property(fx,"scale",Vector2(2.35,2.35),0.40)
     tween.tween_property(fx,"modulate:a",0.0,0.43)
     tween.tween_property(fly,"position:y",fly.position.y-52,0.50)

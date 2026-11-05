@@ -9,6 +9,9 @@ var order: Array[String] = []
 var index: int = 0
 var round: int = 1
 var finished: bool = false
+var encounter_tier: int = 0
+var encounter_kind: String = "boss"
+var boss_enraged: bool = false
 var result: String = ""
 var inventory: ModuleInventory
 var abilities := V3Abilities.new()
@@ -31,12 +34,32 @@ func create(progression: V4Progression = null, encounter_id: String = "boss") ->
     ]
     # Reuse the battle rules for individual overworld patrols and the final boss.
     # The default encounter remains unchanged for all earlier regression tests.
-    if encounter_id == "raider":
+    if encounter_kind == "raider":
         unit_by_id("ashfang").hp = 0
         unit_by_id("shaman").hp = 0
-    elif encounter_id == "shaman":
+    elif encounter_kind == "shaman":
         unit_by_id("ashfang").hp = 0
         unit_by_id("raider").hp = 0
+    encounter_kind = encounter_id
+    encounter_tier = 0
+    boss_enraged = false
+    if encounter_id.begins_with("frost_"):
+        encounter_tier = 1
+        encounter_kind = encounter_id.trim_prefix("frost_")
+    elif encounter_id.begins_with("void_"):
+        encounter_tier = 2
+        encounter_kind = encounter_id.trim_prefix("void_")
+    if encounter_tier > 0:
+        var zone_names: Array[String] = (["Frostbound Herald", "Frost Stalker", "Mist Conjurer"] if encounter_tier == 1 else ["The Star-Eater", "Void Sentinel", "Umbral Magus"])
+        var enemies: Array[String] = ["ashfang","raider","shaman"]
+        for e: int in range(enemies.size()):
+            var enemy: V3Unit = unit_by_id(enemies[e])
+            enemy.name = zone_names[e]
+            enemy.health += encounter_tier * (32 if enemies[e] == "ashfang" else 17)
+            enemy.hp = enemy.health
+            enemy.power += encounter_tier * 3
+            enemy.defense += encounter_tier
+            enemy.speed += encounter_tier
     round = 1
     index = 0
     finished = false
@@ -46,7 +69,7 @@ func create(progression: V4Progression = null, encounter_id: String = "boss") ->
             progression.apply(member)
     _reorder()
     active_unit().begin_turn()
-    changed.emit("Battle begins: %s!" % (encounter_id.capitalize() if encounter_id != "boss" else "Ashfang and his retainers"))
+    changed.emit("Battle begins in %s!" % (["Hearthwood", "Glimmerfen", "Skyvault"][encounter_tier]))
 
 func unit_by_id(key: String) -> V3Unit:
     for unit: V3Unit in units:
@@ -145,6 +168,10 @@ func execute(kind: String, target_id: String) -> bool:
             target.chilled = 2
     actor.chilled = maxi(0, actor.chilled - 1)
     _check_end()
+    if not finished and target.id == "ashfang" and target.hp > 0 and target.hp * 2 <= max_hp(target) and not boss_enraged:
+        boss_enraged = true
+        target.power += 4 + encounter_tier
+        changed.emit("BOSS PHASE TWO! %s erupts with renewed power!" % target.name)
     action_resolved.emit({"kind": kind, "style": str(definition["style"]), "source": actor.id,
         "target": target.id, "amount": amount, "healing": kind in ["mend", "potion"],
         "critical": critical, "dice_total": die_total})
@@ -225,7 +252,7 @@ func snapshot() -> Dictionary:
             "guarding": unit.guarding, "chilled": unit.chilled, "power": attack_power(unit), "armor": armor(unit),
             "level": unit.level, "xp": unit.experience, "class": unit.role})
     return {"actors": actors, "order": order.duplicate(), "index": index, "round": round,
-        "finished": finished, "result": result, "potions": inventory.potions,
+        "finished": finished, "result": result, "tier": encounter_tier, "boss_enraged": boss_enraged, "potions": inventory.potions,
         "equipment": inventory.equipped.duplicate(), "bag": inventory.bag.duplicate()}
 
 func serialize() -> Dictionary:
@@ -233,7 +260,7 @@ func serialize() -> Dictionary:
     for unit: V3Unit in units:
         actors.append(unit.serialize())
     return {"actors": actors,"order": order.duplicate(),"index": index,"round": round,
-        "finished": finished,"result": result}
+        "finished": finished,"result": result, "boss_enraged": boss_enraged, "tier": encounter_tier, "encounter_kind": encounter_kind}
 
 func restore(data: Dictionary) -> bool:
     var actors: Variant = data.get("actors", [])
@@ -264,6 +291,10 @@ func restore(data: Dictionary) -> bool:
     round = new_round
     finished = bool(data.get("finished", false))
     result = str(data.get("result", ""))
+    boss_enraged = bool(data.get("boss_enraged", false))
+    # A mismatched encounter would corrupt its combatant identities.
+    if int(data.get("tier",encounter_tier)) != encounter_tier or str(data.get("encounter_kind",encounter_kind)) != encounter_kind:
+        return false
     if not finished and not active_unit().alive():
         return false
     # CSPRNG state is never serialized. Future rolls remain unpredictable.
