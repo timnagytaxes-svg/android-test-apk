@@ -32,14 +32,6 @@ func create(progression: V4Progression = null, encounter_id: String = "boss") ->
         V3Unit.new("raider", "Ash Raider", "enemy", "raider", 33, 5, 1, 10, 3),
         V3Unit.new("shaman", "Ash Shaman", "enemy", "shaman", 30, 4, 1, 7, 4)
     ]
-    # Reuse the battle rules for individual overworld patrols and the final boss.
-    # The default encounter remains unchanged for all earlier regression tests.
-    if encounter_kind == "raider":
-        unit_by_id("ashfang").hp = 0
-        unit_by_id("shaman").hp = 0
-    elif encounter_kind == "shaman":
-        unit_by_id("ashfang").hp = 0
-        unit_by_id("raider").hp = 0
     encounter_kind = encounter_id
     encounter_tier = 0
     boss_enraged = false
@@ -50,7 +42,11 @@ func create(progression: V4Progression = null, encounter_id: String = "boss") ->
         encounter_tier = 2
         encounter_kind = encounter_id.trim_prefix("void_")
     if encounter_tier > 0:
-        var zone_names: Array[String] = (["Frostbound Herald", "Frost Stalker", "Mist Conjurer"] if encounter_tier == 1 else ["The Star-Eater", "Void Sentinel", "Umbral Magus"])
+        var zone_names: Array[String] = []
+        if encounter_tier == 1:
+            zone_names.assign(["Frostbound Herald", "Frost Stalker", "Mist Conjurer"])
+        else:
+            zone_names.assign(["The Star-Eater", "Void Sentinel", "Umbral Magus"])
         var enemies: Array[String] = ["ashfang","raider","shaman"]
         for e: int in range(enemies.size()):
             var enemy: V3Unit = unit_by_id(enemies[e])
@@ -60,6 +56,14 @@ func create(progression: V4Progression = null, encounter_id: String = "boss") ->
             enemy.power += encounter_tier * 3
             enemy.defense += encounter_tier
             enemy.speed += encounter_tier
+    # Reuse the battle rules for individual overworld patrols and the final boss.
+    # The default encounter remains unchanged for all earlier regression tests.
+    if encounter_kind == "raider":
+        unit_by_id("ashfang").hp = 0
+        unit_by_id("shaman").hp = 0
+    elif encounter_kind == "shaman":
+        unit_by_id("ashfang").hp = 0
+        unit_by_id("raider").hp = 0
     round = 1
     index = 0
     finished = false
