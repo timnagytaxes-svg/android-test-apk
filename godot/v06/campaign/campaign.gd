@@ -216,6 +216,6 @@ func restore(data: Dictionary) -> bool:
     achievements.clear()
     for item: Variant in data["achievements"]:
         var key: String = str(item)
-        if not achievements.has(key) and key in ["first_victory", "boss_slayer", "first_forge", "stars_reclaimed"]:
+        if not achievements.has(key) and key in ["first_victory", "boss_slayer", "first_forge", "stars_reclaimed", "treasure_hunter"]:
             achievements.append(key)
     return true

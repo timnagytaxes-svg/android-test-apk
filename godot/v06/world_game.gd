@@ -18,6 +18,7 @@ func _ready() -> void:
     _install_menu()
     _install_overlay()
     _refresh()
+    _open_panel("title")
 
 func _install_world() -> void:
     world = campaign.current_zone()
@@ -112,6 +113,24 @@ func _open_panel(kind: String) -> void:
     overlay_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     overlay_actions.add_child(overlay_text)
     match kind:
+        "title":
+            overlay_title.text = "IRONBOUND CHRONICLES"
+            overlay_text.text = "THE STARFORGER'S OATH\nA complete three-chapter tactical adventure. Explore the realms, master the classes, and restore the dawn."
+            var art := TextureRect.new()
+            art.texture = preload("res://v06/assets/title_art.svg")
+            art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+            art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+            art.custom_minimum_size = Vector2(0,320)
+            overlay_actions.add_child(art)
+            overlay_actions.move_child(art,1)
+            _panel_button("BEGIN ADVENTURE",_close_panel)
+            _panel_button("CONTINUE SAVED ADVENTURE",_open_panel.bind("slots"))
+            _panel_button("OPTIONS",_open_panel.bind("settings"))
+            _panel_button("CREDITS",_open_panel.bind("credits"))
+        "credits":
+            overlay_title.text = "IRONBOUND • CREDITS"
+            overlay_text.text = "Design, code, world and vector illustrations created for Ironbound Chronicles.\nJRPG character and spell-sheet references were supplied by the game creator.\nEngine: Godot 4.4.1.\nThe game is offline-first and stores saves on the device.\nThis is a playable pre-release campaign."
+            _panel_button("RETURN TO TITLE",_open_panel.bind("title"))
         "journal":
             overlay_title.text = "THE IRONBOUND CHRONICLE"
             overlay_text.text = campaign.journal()
