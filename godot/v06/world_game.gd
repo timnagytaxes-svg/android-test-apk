@@ -11,6 +11,7 @@ var overlay_mode: String = ""
 var story_title: Label
 var menu_row: HBoxContainer
 var _returning: bool = false
+var _save_store := V6SaveStore.new()
 
 func _ready() -> void:
     super._ready()
@@ -347,42 +348,25 @@ func _return_from_battle() -> void:
 func _save_world(silent: bool = false) -> bool:
     if not _active_encounter.is_empty():
         return false
-    var content: Dictionary = {"schema": 6,
+    var payload: Dictionary = {
+        "schema": 6,
         "campaign": campaign.to_dict(),
         "inventory": game.bag.to_dict(),
-        "progression": game.progression.to_dict()}
-    var file: FileAccess = FileAccess.open(_save_path(),FileAccess.WRITE)
-    if file == null:
-        _message = "Unable to write adventure save."
-        _refresh()
-        return false
-    file.store_string(JSON.stringify(content))
-    file.flush()
-    var ok: bool = file.get_error() == OK
-    file.close()
+        "progression": game.progression.to_dict()
+    }
+    var ok: bool = _save_store.save(save_slot, payload)
     if not silent:
         _message = "Adventure saved in Slot %d." % save_slot if ok else "Save failed."
     _refresh()
     return ok
 
-func _save_path() -> String:
-    return GAME_SAVE_PREFIX + str(save_slot) + ".json"
-
 func _load_world() -> bool:
     if not _active_encounter.is_empty():
         return false
     _stop_walk()
-    if not FileAccess.file_exists(_save_path()):
-        _message = "No valid save found in Slot %d." % save_slot
-        _refresh()
-        return false
-    var file: FileAccess = FileAccess.open(_save_path(), FileAccess.READ)
-    if file == null:
-        return false
-    var raw: Variant = JSON.parse_string(file.get_as_text())
-    file.close()
-    if not raw is Dictionary or int(raw.get("schema",0)) != 6 or not raw.get("campaign") is Dictionary or not raw.get("inventory") is Dictionary or not raw.get("progression") is Dictionary:
-        _message = "Save format is invalid."
+    var raw: Dictionary = _save_store.load(save_slot)
+    if int(raw.get("schema",0)) != 6 or not raw.get("campaign") is Dictionary or not raw.get("inventory") is Dictionary or not raw.get("progression") is Dictionary:
+        _message = "No valid adventure in Slot %d. Checked primary and backup." % save_slot
         _refresh()
         return false
     var next_campaign := V6Campaign.new()
@@ -398,6 +382,6 @@ func _load_world() -> bool:
     game.progression = next_progress
     game.generation += 1
     _change_world(campaign.current_zone())
-    _message = "Slot %d loaded successfully." % save_slot
+    _message = "Slot %d restored. Welcome back!" % save_slot
     _refresh()
     return true
