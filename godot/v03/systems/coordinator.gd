@@ -111,6 +111,8 @@ func _run_ai() -> void:
     _ai_busy = false
     if version == generation:
         _publish()
+    else:
+        _schedule_ai()
 
 func save_game() -> bool:
     if battle == null:
