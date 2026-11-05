@@ -453,10 +453,10 @@ func _return_from_battle() -> void:
         battle_layer.visible = false
         world_layer.visible = true
         _message = "Bounty complete. Rewards and XP kept!" if result else "Bounty failed. Your party was rescued."
-        if result:
-            _save_world(true)
     else:
         super._return_from_battle()
+    # Autosave both victories and defeats so the world economy cannot roll back.
+    _save_world(true)
     _returning = false
     _refresh()
 
