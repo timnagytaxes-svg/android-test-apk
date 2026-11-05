@@ -66,7 +66,11 @@ func record_battle(encounter: String, victory: bool, battle: V3Battle) -> Dictio
         gold += reward
         for actor: V3Unit in battle.units:
             if actor.faction == "party":
-                party_wounds[actor.id] = maxi(0, battle.max_hp(actor) - actor.hp)
+                var missing: int = maxi(0, battle.max_hp(actor) - actor.hp)
+                if missing > 0:
+                    party_wounds[actor.id] = missing
+                else:
+                    party_wounds.erase(actor.id)
         _award_badge("first_victory")
         if encounter == "boss":
             _award_badge("boss_slayer")
