@@ -4,7 +4,7 @@
 config_version=5
 
 [application]
-config/name="Ironbound Tactics 0.3"
+config/name="Ironbound Tactics 0.4"
 run/main_scene="res://v03/battle_screen.tscn"
 config/icon="res://art/app_icon.svg"
 config/features=PackedStringArray("4.4", "GL Compatibility")
