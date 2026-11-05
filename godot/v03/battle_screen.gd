@@ -6,6 +6,7 @@ var turn_label: Label
 var prompt: Label
 var events_label: Label
 var initiative_label: Label
+var progression_label: Label
 var submenu: HBoxContainer
 var target_row: HBoxContainer
 var hud: Dictionary = {}
@@ -41,7 +42,7 @@ func _build() -> void:
     var main := VBoxContainer.new()
     main.add_theme_constant_override("separation", 7)
     pad.add_child(main)
-    var heading := _label("IRONBOUND TACTICS  •  v0.3", 27, Color("#f2d18c"))
+    var heading := _label("IRONBOUND TACTICS  •  v0.4", 27, Color("#f2d18c"))
     heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     main.add_child(heading)
     turn_label = _label("",20,Color.WHITE)
@@ -49,6 +50,8 @@ func _build() -> void:
     initiative_label = _label("",16,Color("#b9dce2"))
     initiative_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     main.add_child(initiative_label)
+    progression_label = _label("",17,Color("#e9c98c"))
+    main.add_child(progression_label)
     stage = V3Stage.new()
     stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
     main.add_child(stage)
@@ -140,6 +143,14 @@ func _make_equipment_layer() -> void:
     body.add_child(hint)
     equip_stats = _label("",20,Color("#88d8ff"))
     body.add_child(equip_stats)
+    body.add_child(_label("CLASS FOR NEXT BATTLE",21,Color("#f3d18c")))
+    var class_row := HBoxContainer.new()
+    class_row.add_theme_constant_override("separation",6)
+    body.add_child(class_row)
+    for name: String in V4Progression.CLASSES.keys():
+        var class_button: Button = _button(str(V4Progression.CLASSES[name]["name"]),16,54)
+        class_row.add_child(class_button)
+        class_button.pressed.connect(_choose_class.bind(name))
     equip_message = _label("",17,Color("#f2ca8f"))
     equip_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     body.add_child(equip_message)
@@ -151,10 +162,12 @@ func _make_equipment_layer() -> void:
     equip_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     equip_list.add_theme_constant_override("separation",9)
     scroll.add_child(equip_list)
-    var utilities := HBoxContainer.new()
-    utilities.add_theme_constant_override("separation",8)
+    var utilities := GridContainer.new()
+    utilities.columns = 2
+    utilities.add_theme_constant_override("h_separation",8)
+    utilities.add_theme_constant_override("v_separation",8)
     body.add_child(utilities)
-    for title: String in ["SAVE","LOAD","NEW BATTLE"]:
+    for title: String in ["SAVE","LOAD","NEXT ENCOUNTER","NEW CAMPAIGN"]:
         var b: Button = _button(title,18,55)
         utilities.add_child(b)
         b.pressed.connect(_utility.bind(title))
@@ -166,7 +179,7 @@ func _command_menu(title: String) -> void:
         return
     match title:
         "ATTACK": _begin_targeting("attack")
-        "SKILLS": _options(["arc"])
+        "SKILLS": _options(["arc","cleave","surge","bastion"])
         "MAGIC": _options(["ember","frost","mend"])
         "ITEMS": _options(["potion"])
         "DEFEND": _begin_targeting("guard")
@@ -198,7 +211,7 @@ func _begin_targeting(kind: String) -> void:
     if choices.is_empty():
         prompt.text = "Unavailable: check MP, turn, and whether the target needs healing. Potions require your action first."
         return
-    if kind == "guard":
+    if kind in ["guard","bastion"]:
         game.player_action(kind,"warden")
         return
     if kind == "potion" and choices.size() == 1:
@@ -235,16 +248,30 @@ func _clear_targeting() -> void:
         child.queue_free()
     prompt.text = "Select ATTACK, SKILLS, MAGIC, or ITEMS. Healing targets allies."
 
+func _choose_class(klass: String) -> void:
+    if game.choose_class(klass):
+        equip_message.text = "Class set for your next encounter. Level 2 unlocks a signature skill."
+        _refresh_gear(true)
+
 func _utility(title: String) -> void:
     match title:
         "SAVE": game.save_game()
         "LOAD":
             if game.load_game():
                 _clear_targeting()
-        "NEW BATTLE":
+        "NEXT ENCOUNTER":
+            if game.battle.finished:
+                _clear_targeting()
+                game.new_encounter()
+                equip_layer.visible = false
+            else:
+                equip_message.text = "Finish the current battle first. Levels carry forward after victory."
+        "NEW CAMPAIGN":
             _clear_targeting()
-            game.new_encounter()
-    equip_message.text = title + " command processed."
+            game.new_encounter(true)
+            equip_layer.visible = false
+    if title in ["SAVE", "LOAD"]:
+        equip_message.text = title + " command processed."
     _refresh_gear(true)
 
 func _render(state: Dictionary, messages: Array[String]) -> void:
@@ -261,17 +288,25 @@ func _render(state: Dictionary, messages: Array[String]) -> void:
         if unit != null:
             upcoming.append(unit.name)
     initiative_label.text = "NEXT: " + "  ›  ".join(upcoming)
+    var progress: Dictionary = state.get("progression", {})
+    var members: Dictionary = progress.get("heroes", {})
+    var player_progress: Dictionary = members.get("warden", {"level": 1, "xp": 0})
+    var current_class: String = str(progress.get("hero_class", "vanguard"))
+    progression_label.text = "CLASS: %s   •   LEVEL %d   •   XP %d/%d   •   WINS %d" % [
+        str(V4Progression.CLASSES[current_class]["name"]).to_upper(),
+        int(player_progress["level"]), int(player_progress["xp"]),
+        game.progression.xp_needed(int(player_progress["level"])), int(progress.get("victories", 0))]
     for id: String in hud.keys():
         var unit: Dictionary = all[id]
         var panel: Dictionary = hud[id]
-        panel["name"].text = "%s  %d/%d HP  %d MP%s" % [str(unit["name"]).to_upper(),int(unit["hp"]),int(unit["max_hp"]),int(unit["mp"]),"  ❄" if int(unit["chilled"]) > 0 else ""]
+        panel["name"].text = "%s  Lv%d  %d/%d HP  %d MP%s" % [str(unit["name"]).to_upper(),int(unit["level"]),int(unit["hp"]),int(unit["max_hp"]),int(unit["mp"]),"  ❄" if int(unit["chilled"]) > 0 else ""]
         panel["hp"].max_value = float(unit["max_hp"])
         panel["hp"].value = float(unit["hp"])
         panel["name"].add_theme_color_override("font_color", Color("#f6dc93") if actor != null and id == actor.id else Color("#d2e2ec"))
     stage.refresh(state)
     if bool(state["finished"]):
         _clear_targeting()
-        prompt.text = "Battle complete: %s. Open EQUIP for a new battle." % str(state["result"])
+        prompt.text = "Battle complete: %s. Open EQUIP → NEXT ENCOUNTER to keep XP and gear." % str(state["result"])
     elif actor != null and actor.id != "warden":
         if not pending.is_empty():
             _clear_targeting()
@@ -289,7 +324,7 @@ func _refresh_gear(force: bool = false) -> void:
     if current.is_empty():
         return
     var player_ready: bool = game.is_player_turn() and not game.battle.active_unit().action_used
-    var token: String = JSON.stringify([current["bag"],current["equipment"],current["actors"][0]["hp"],player_ready])
+    var token: String = JSON.stringify([current["bag"],current["equipment"],current["actors"][0]["hp"],player_ready,current.get("progression",{})])
     if token == gear_cache and not force:
         return
     gear_cache = token
@@ -299,6 +334,9 @@ func _refresh_gear(force: bool = false) -> void:
     var hero: Dictionary = current["actors"][0]
     equip_stats.text = "WARDEN:  %d/%d HP  |  %d POWER  |  %d ARMOR\nPotions: %d" % [
         int(hero["hp"]),int(hero["max_hp"]),int(hero["power"]),int(hero["armor"]),int(current["potions"])]
+    var progress: Dictionary = current.get("progression", {})
+    var desired_class: String = str(progress.get("hero_class", "vanguard"))
+    equip_stats.text += "\nNEXT CLASS: %s   •   VICTORIES: %d" % [V4Progression.CLASSES[desired_class]["name"],int(progress.get("victories",0))]
     for slot: String in ModuleInventory.SLOTS:
         var worn_id: String = str(current["equipment"].get(slot,""))
         var worn_name: String = "Empty" if worn_id.is_empty() else str(ModuleInventory.ITEMS[worn_id]["name"])

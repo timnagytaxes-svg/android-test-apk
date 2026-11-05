@@ -176,11 +176,12 @@ func _animate_next() -> void:
     fx.hframes = 6
     match kind:
         "attack": fx.frame = 4
-        "arc": fx.frame = 0
+        "arc", "surge": fx.frame = 0
+        "cleave": fx.frame = 4
         "ember": fx.frame = 2
         "frost": fx.frame = 1
         "mend", "potion": fx.frame = 3
-        "guard": fx.frame = 5
+        "guard", "bastion": fx.frame = 5
     fx.position = target_at
     fx.modulate.a = 0.95
     fx.z_index = 10
@@ -191,8 +192,10 @@ func _animate_next() -> void:
     add_child(fx)
     var fly := Label.new()
     fly.text = "%s%d" % ["+" if bool(e.get("healing",false)) else "-",int(e.get("amount",0))]
-    if kind == "guard":
+    if kind in ["guard", "bastion"]:
         fly.text = "GUARD"
+    elif bool(e.get("critical", false)):
+        fly.text = "CRIT!  -" + str(e.get("amount", 0))
     fly.add_theme_font_size_override("font_size",30)
     fly.add_theme_color_override("font_color",Color("#83ffc4") if bool(e.get("healing",false)) else Color("#ffe0a5"))
     fly.position = target_at+Vector2(-20,-65)
@@ -205,7 +208,7 @@ func _animate_next() -> void:
     tween.tween_property(fx,"modulate:a",0.0,0.43)
     tween.tween_property(fly,"position:y",fly.position.y-52,0.50)
     tween.tween_property(fly,"modulate:a",0.0,0.5)
-    if kind not in ["guard","mend","potion"]:
+    if kind not in ["guard","bastion","mend","potion"]:
         tween.tween_property(victim,"modulate",Color("#ff8878"),0.18)
     await tween.finished
     if is_instance_valid(fx):

@@ -55,6 +55,8 @@ func earn_victory() -> Array[String]:
             record["xp"] = int(record["xp"]) - xp_needed(int(record["level"]))
             record["level"] = int(record["level"]) + 1
             leveled = true
+        if int(record["level"]) >= 20:
+            record["xp"] = mini(int(record["xp"]), xp_needed(20) - 1)
         messages.append("%s +%d XP%s" % [id.capitalize(), xp_award,
             " • LEVEL %d!" % int(record["level"]) if leveled else ""])
     return messages

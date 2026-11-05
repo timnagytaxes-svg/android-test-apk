@@ -60,7 +60,7 @@ func serialize() -> Dictionary:
         "action_used": action_used,"bonus_used": bonus_used}
 
 func restore(data: Dictionary, cap: int) -> bool:
-    if str(data.get("id", "")) != id or int(data.get("level", level)) != level:
+    if str(data.get("id", "")) != id :
         return false
     var new_hp: int = int(data.get("hp", -1))
     var new_mp: int = int(data.get("mp", -1))
