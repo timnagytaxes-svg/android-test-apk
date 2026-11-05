@@ -2,7 +2,7 @@ extends SceneTree
 
 var _failures: int = 0
 
-func _initialize() -> void:
+func _init() -> void:
     var bag := ModuleInventory.new()
     var rules := ModuleAbilityRules.new()
     var combat := ModuleCombat.new(rules, bag)
