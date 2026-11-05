@@ -178,7 +178,10 @@ func _make_equipment_layer() -> void:
     utilities.add_theme_constant_override("h_separation",8)
     utilities.add_theme_constant_override("v_separation",8)
     body.add_child(utilities)
-    var utility_actions: Array[String] = ["SAVE","LOAD","NEXT ENCOUNTER","NEW CAMPAIGN"] if injected_game == null else ["RETURN TO WORLD"]
+    var utility_actions: Array[String] = ["SAVE","LOAD","NEXT ENCOUNTER","NEW CAMPAIGN"]
+    if injected_game != null:
+        utility_actions.clear()
+        utility_actions.append("RETURN TO WORLD")
     for title: String in utility_actions:
         var b: Button = _button(title,18,55)
         utilities.add_child(b)
