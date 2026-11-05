@@ -4,8 +4,8 @@
 config_version=5
 
 [application]
-config/name="Ironbound Tactics 0.5"
-run/main_scene="res://v05/world_game.tscn"
+config/name="Ironbound Chronicles 0.6"
+run/main_scene="res://v06/world_game.tscn"
 config/icon="res://art/app_icon.svg"
 config/features=PackedStringArray("4.4", "GL Compatibility")
 

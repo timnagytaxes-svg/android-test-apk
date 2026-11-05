@@ -104,6 +104,20 @@ jobs:
           timeout 50s "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path godot --script res://v05/tests/ui_smoke.gd 2>&1 | tee /tmp/v05-ui-tests.txt
           grep -q "V05 UI BATTLE TRANSITION TESTS PASSED" /tmp/v05-ui-tests.txt
           if grep -E 'SCRIPT ERROR|Parse Error|FAIL V05 UI:' /tmp/v05-ui-tests.txt; then exit 1; fi
+      - name: Run v0.6 adventure economy and boss tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 65s "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path godot --script res://v06/tests/rules.gd 2>&1 | tee /tmp/v06-rules.txt
+          grep -q "V06 CAMPAIGN ECONOMY AND BATTLE RULES PASSED" /tmp/v06-rules.txt
+          if grep -E 'SCRIPT ERROR|Parse Error|FAIL V06:' /tmp/v06-rules.txt; then exit 1; fi
+      - name: Run v0.6 automatic turns and world UI tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 65s "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path godot --script res://v06/tests/ui.gd 2>&1 | tee /tmp/v06-ui.txt
+          grep -q "V06 AUTO FLOW AND UI INTEGRATION PASSED" /tmp/v06-ui.txt
+          if grep -E 'SCRIPT ERROR|Parse Error|FAIL V06 UI:' /tmp/v06-ui.txt; then exit 1; fi
       - name: Check main scene boots
         shell: bash
         run: |
@@ -118,12 +132,12 @@ jobs:
           export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$GITHUB_WORKSPACE/godot/debug.keystore"
           export GODOT_ANDROID_KEYSTORE_DEBUG_USER="androiddebugkey"
           export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="android"
-          "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --verbose --path godot --export-debug "Android" "$GITHUB_WORKSPACE/build/Ironbound_Tactics_v0_5.apk" 2>&1 | tee /tmp/godot-export.txt
+          "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --verbose --path godot --export-debug "Android" "$GITHUB_WORKSPACE/build/Ironbound_Chronicles_v0_6.apk" 2>&1 | tee /tmp/godot-export.txt
           if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' /tmp/godot-export.txt; then exit 1; fi
-          test -s build/Ironbound_Tactics_v0_5.apk
+          test -s build/Ironbound_Chronicles_v0_6.apk
       - name: Upload Godot APK
         uses: actions/upload-artifact@v4
         with:
-          name: ironbound-tactics-v05
-          path: build/Ironbound_Tactics_v0_5.apk
+          name: ironbound-chronicles-v06
+          path: build/Ironbound_Chronicles_v0_6.apk
           if-no-files-found: error
