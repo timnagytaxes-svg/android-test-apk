@@ -14,10 +14,11 @@ func save(slot: int, payload: Dictionary) -> bool:
     var destination: String = slot_path(slot)
     if destination.is_empty():
         return false
+    var serialized: String = JSON.stringify(payload)
     var wrapped: Dictionary = {
         "format": 1,
-        "checksum": JSON.stringify(payload).sha256_text(),
-        "payload": payload
+        "checksum": serialized.sha256_text(),
+        "data": serialized
     }
     var tempfile: String = destination + ".tmp"
     var backup: String = destination + ".bak"
@@ -63,9 +64,12 @@ func _read_checked(path: String) -> Dictionary:
     file.close()
     if not parsed is Dictionary:
         return {}
-    if int(parsed.get("format",0)) != 1 or not parsed.get("payload") is Dictionary:
+    if int(parsed.get("format",0)) != 1 or not parsed.get("data") is String:
         return {}
-    var payload: Dictionary = parsed["payload"]
-    if str(parsed.get("checksum","")) != JSON.stringify(payload).sha256_text():
+    var original: String = str(parsed["data"])
+    if str(parsed.get("checksum","")) != original.sha256_text():
+        return {}
+    var payload: Variant = JSON.parse_string(original)
+    if not payload is Dictionary:
         return {}
     return payload
