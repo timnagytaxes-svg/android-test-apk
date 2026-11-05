@@ -53,7 +53,7 @@ func _build() -> void:
     var main := VBoxContainer.new()
     main.add_theme_constant_override("separation", 7)
     pad.add_child(main)
-    var heading := _label("IRONBOUND TACTICS  •  v0.5", 27, Color("#f2d18c"))
+    var heading := _label("IRONBOUND CHRONICLES  •  BATTLE", 27, Color("#f2d18c"))
     heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     main.add_child(heading)
     turn_label = _label("",20,Color.WHITE)
