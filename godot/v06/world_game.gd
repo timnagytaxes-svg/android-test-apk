@@ -98,6 +98,16 @@ func _install_overlay() -> void:
     overlay_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     overlay_actions.add_child(overlay_text)
 
+func _begin_adventure() -> void:
+    if campaign.tutorial_seen:
+        _close_panel()
+    else:
+        _open_panel("tutorial")
+
+func _complete_tutorial() -> void:
+    campaign.tutorial_seen = true
+    _close_panel()
+
 func _close_panel() -> void:
     overlay.visible = false
 
@@ -131,7 +141,7 @@ func _open_panel(kind: String) -> void:
             art.custom_minimum_size = Vector2(0,320)
             overlay_actions.add_child(art)
             overlay_actions.move_child(art,1)
-            _panel_button("BEGIN ADVENTURE",_close_panel)
+            _panel_button("BEGIN ADVENTURE",_begin_adventure)
             _panel_button("CONTINUE SAVED ADVENTURE",_open_panel.bind("slots"))
             _panel_button("OPTIONS",_open_panel.bind("settings"))
             _panel_button("CREDITS",_open_panel.bind("credits"))
@@ -139,6 +149,10 @@ func _open_panel(kind: String) -> void:
             overlay_title.text = "IRONBOUND • CREDITS"
             overlay_text.text = "Design, code, world and vector illustrations created for Ironbound Chronicles.\nJRPG character and spell-sheet references were supplied by the game creator.\nEngine: Godot 4.4.1.\nThe game is offline-first and stores saves on the device.\nThis is a playable pre-release campaign."
             _panel_button("RETURN TO TITLE",_open_panel.bind("title"))
+        "tutorial":
+            overlay_title.text = "HOW TO PLAY"
+            overlay_text.text = "WELCOME TO IRONBOUND\n\n1. Tap a green map tile to travel. Your party walks along a safe route.\n\n2. Visit the mentor's building in each chapter to accept the story quest. Defeat two patrols, face the chapter boss, then return for the reward.\n\n3. In battle, choose ATTACK / SKILLS / MAGIC, then tap a highlighted target. Three AI companions support you.\n\n4. Potions are BONUS actions available AFTER your regular action. When no bonus is usable, your turn advances automatically. Winning a battle returns you to the map.\n\n5. Visit TOWN for potions, forging, camp recovery and repeatable bounties. PACK manages equipment outside combat.\n\n6. Save your adventure in SLOTS. The game also autosaves completed encounters.\n\nFinish all three chapters to restore the dawn."
+            _panel_button("BEGIN MY QUEST",_complete_tutorial)
         "journal":
             overlay_title.text = "THE IRONBOUND CHRONICLE"
             overlay_text.text = campaign.journal()
@@ -217,6 +231,7 @@ func _open_panel(kind: String) -> void:
             _panel_button("VETERAN DIFFICULTY",_difficulty.bind(1))
             _panel_button("REDUCE COMBAT MOTION: %s" % ("ON" if campaign.reduced_motion else "OFF"),_toggle_motion)
             _panel_button("MUSIC & EFFECTS: %s" % ("ON" if campaign.sound_enabled else "OFF"),_toggle_sound)
+            _panel_button("REPLAY HOW-TO-PLAY",_open_panel.bind("tutorial"))
             _panel_button("START A NEW GAME",_open_panel.bind("confirm_reset"))
             _section("Current difficulty: %s" % ("Veteran" if campaign.difficulty == 1 else "Story"))
         "confirm_reset":

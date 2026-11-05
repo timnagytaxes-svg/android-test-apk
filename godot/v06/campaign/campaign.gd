@@ -16,6 +16,7 @@ var forge_armor: int = 0
 var difficulty: int = CLASSIC_DIFFICULTY
 var reduced_motion: bool = false
 var sound_enabled: bool = true
+var tutorial_seen: bool = false
 var encounters_won: int = 0
 var encounters_lost: int = 0
 var bounty_victories: int = 0
@@ -198,7 +199,7 @@ func to_dict() -> Dictionary:
         states.append(zone.to_dict())
     return {"schema": 1, "chapter": chapter, "gold": gold, "crystals": crystals,
         "forge_power": forge_power, "forge_armor": forge_armor,
-        "difficulty": difficulty, "reduced_motion": reduced_motion, "sound_enabled": sound_enabled,
+        "difficulty": difficulty, "reduced_motion": reduced_motion, "sound_enabled": sound_enabled, "tutorial_seen": tutorial_seen,
         "encounters_won": encounters_won, "encounters_lost": encounters_lost, "bounty_victories": bounty_victories,
         "treasures_found": treasures_found, "party_wounds": party_wounds.duplicate(),
         "achievements": achievements.duplicate(), "bonds": bonds.duplicate(), "zones": states}
@@ -256,6 +257,7 @@ func restore(data: Dictionary) -> bool:
     difficulty = mode
     reduced_motion = bool(data.get("reduced_motion",false))
     sound_enabled = bool(data.get("sound_enabled",true))
+    tutorial_seen = bool(data.get("tutorial_seen",false))
     party_wounds = saved_wounds.duplicate()
     bonds = saved_bonds.duplicate()
     achievements.clear()
