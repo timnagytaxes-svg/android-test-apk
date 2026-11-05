@@ -87,6 +87,29 @@ func _init() -> void:
     _check(veteran.unit_by_id("shaman").power == old_power+2,"Veteran difficulty increases enemy power")
     _check(veteran.unit_by_id("shaman").alive() and not veteran.unit_by_id("ashfang").alive(),"Regional shaman encounter filtered")
 
+    # Save files have an exact-byte checksum and a last-good backup.
+    var save_store := V6SaveStore.new()
+    _check(save_store.save(3,{"schema": 6, "snapshot": "first", "amount": 19}),"First transactional save")
+    _check(save_store.save(3,{"schema": 6, "snapshot": "second", "amount": 20}),"Second save rotates backup")
+    _check(save_store.load(3).get("snapshot") == "second","Newest valid save loads")
+    var corrupted_file: FileAccess = FileAccess.open(save_store.slot_path(3),FileAccess.WRITE)
+    _check(corrupted_file != null,"Can open save for corruption simulation")
+    if corrupted_file != null:
+        corrupted_file.store_string("{damage: true}")
+        corrupted_file.close()
+    _check(save_store.load(3).get("snapshot") == "first","Corruption automatically falls back to previous valid save")
+    _check(not save_store.save(0,{}),"Invalid slot number rejected")
+
+    # Boss phase two should trigger once, without touching unrelated characters.
+    var boss_phase := V3Battle.new(bag)
+    boss_phase.create(progress,"boss")
+    boss_phase.unit_by_id("ashfang").hp = 60
+    _check(boss_phase.end_turn(),"Warden gains turn for boss-phase test")
+    _check(boss_phase.execute("attack","ashfang"),"Boss takes randomized damage")
+    _check(boss_phase.boss_enraged,"Boss changes phase after dropping below half HP")
+    var enraged_power: int = boss_phase.unit_by_id("ashfang").power
+    _check(boss_phase.boss_enraged and enraged_power >= 12,"Boss phase boosts enemy power")
+
     if errors == 0:
         print("V06 CAMPAIGN ECONOMY AND BATTLE RULES PASSED")
     quit(1 if errors > 0 else 0)
