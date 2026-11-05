@@ -117,7 +117,12 @@ func can_act(kind: String, target_id: String = "") -> bool:
         if actor.role != required[kind]:
             return false
     if target_id.is_empty():
-        return not abilities.targets(kind, actor, units).is_empty()
+        # Targetless availability must consider health and other target conditions.
+        # Otherwise a full-health party falsely appears to have bonus potions.
+        for candidate: String in abilities.targets(kind, actor, units):
+            if can_act(kind, candidate):
+                return true
+        return false
     var target: V3Unit = unit_by_id(target_id)
     if target == null or not abilities.targets(kind, actor, units).has(target_id):
         return false
