@@ -10,6 +10,7 @@ const BOSS_TEX: Texture2D = preload("res://art/ashfang.svg")
 var sprites: Dictionary = {}
 var hotspots: Dictionary = {}
 var nameplates: Dictionary = {}
+var bars: Dictionary = {}
 var positions: Dictionary = {}
 var selectable: Array[String] = []
 var _events: Array[Dictionary] = []
@@ -53,6 +54,11 @@ func _ready() -> void:
         label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
         add_child(label)
         nameplates[id] = label
+        var health_bar := ProgressBar.new()
+        health_bar.show_percentage = false
+        health_bar.custom_minimum_size = Vector2(95,8)
+        add_child(health_bar)
+        bars[id] = health_bar
         var hot := Button.new()
         hot.flat = true
         hot.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -86,6 +92,9 @@ func _layout_characters() -> void:
         var label: Label = nameplates[id]
         label.position = at+Vector2(-67,62)
         label.size = Vector2(134,28)
+        var bar: ProgressBar = bars[id]
+        bar.position = at+Vector2(-47,90)
+        bar.size = Vector2(95,8)
     queue_redraw()
 
 func _draw() -> void:
@@ -129,6 +138,9 @@ func refresh(snapshot: Dictionary) -> void:
         if not sprites.has(id):
             continue
         nameplates[id].text = "%s  %d/%d" % [str(unit["name"]),int(unit["hp"]),int(unit["max_hp"])]
+        var health_bar: ProgressBar = bars[id]
+        health_bar.max_value = float(unit["max_hp"])
+        health_bar.value = float(unit["hp"])
         var sprite: Sprite2D = sprites[id]
         if int(unit["hp"]) <= 0:
             sprite.modulate.a = 0.28

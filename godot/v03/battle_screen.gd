@@ -62,9 +62,28 @@ func _build() -> void:
         panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
         panel.custom_minimum_size = Vector2(0,62)
         party_grid.add_child(panel)
+        var panel_row := HBoxContainer.new()
+        panel_row.add_theme_constant_override("separation",5)
+        panel.add_child(panel_row)
+        var portrait := TextureRect.new()
+        var atlas := AtlasTexture.new()
+        atlas.atlas = preload("res://v03/assets/party.png")
+        var portrait_row: int = 0
+        match id:
+            "mira": portrait_row = 1
+            "lyra": portrait_row = 3
+            "kestrel": portrait_row = 2
+        atlas.region = Rect2(0, portrait_row*48, 48, 48)
+        portrait.texture = atlas
+        portrait.custom_minimum_size = Vector2(42,42)
+        portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+        portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+        portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+        panel_row.add_child(portrait)
         var panel_col := VBoxContainer.new()
+        panel_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
         panel_col.add_theme_constant_override("separation",1)
-        panel.add_child(panel_col)
+        panel_row.add_child(panel_col)
         var name_line := _label("",17,Color("#d5e6f5"))
         panel_col.add_child(name_line)
         var hpbar := ProgressBar.new()
