@@ -48,7 +48,7 @@ func apply_battle_modifiers(battle: V3Battle) -> void:
     for unit: V3Unit in battle.units:
         if unit.faction == "party":
             unit.hp = maxi(1, battle.max_hp(unit) - int(party_wounds.get(unit.id, 0)))
-        elif difficulty == VETERAN_DIFFICULTY:
+        elif unit.alive() and difficulty == VETERAN_DIFFICULTY:
             unit.power += 2
             unit.health += 12
             unit.hp += 12
