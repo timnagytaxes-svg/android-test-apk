@@ -23,6 +23,7 @@ func _ready() -> void:
     game = V3Coordinator.new()
     game.bag = ModuleInventory.new()
     add_child(game)
+    game.state_changed.connect(_on_combat_state)
     _make_ui()
     world.changed.connect(_on_world_changed)
     map_view.set_world(world)
@@ -204,6 +205,13 @@ func _launch_battle(encounter: String) -> void:
     battle_layer.add_child(battle_screen)
     world_layer.visible = false
     battle_layer.visible = true
+
+func _on_combat_state(snapshot: Dictionary, _history: Array[String]) -> void:
+    if _active_encounter.is_empty() or not bool(snapshot.get("finished", false)):
+        return
+    # Complete the encounter without routing through the equipment UI.
+    # Deferred removal protects the scene while combat events are being dispatched.
+    call_deferred("_return_from_battle")
 
 func _return_from_battle() -> void:
     if _active_encounter.is_empty() or game.battle == null or not game.battle.finished:

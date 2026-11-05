@@ -326,13 +326,13 @@ func _render(state: Dictionary, messages: Array[String]) -> void:
     stage.refresh(state)
     if bool(state["finished"]):
         _clear_targeting()
-        prompt.text = ("Battle complete: %s. Open EQUIP → RETURN TO WORLD." if injected_game != null else "Battle complete: %s. Open EQUIP → NEXT ENCOUNTER.") % str(state["result"])
+        prompt.text = ("Battle complete: %s. Returning to the world automatically." if injected_game != null else "Battle complete: %s. Open EQUIP → NEXT ENCOUNTER.") % str(state["result"])
     elif actor != null and actor.id != "warden":
         if not pending.is_empty():
             _clear_targeting()
         prompt.text = "AI turns: allies react to wounded teammates; enemies choose tactical targets."
     elif actor != null and actor.action_used:
-        prompt.text = "Your regular action is spent. Potion is a BONUS action if anyone is injured. END TURN when ready."
+        prompt.text = "Your action is spent. Use an available bonus potion; otherwise your turn advances automatically."
     _update_feed()
     _refresh_gear()
 

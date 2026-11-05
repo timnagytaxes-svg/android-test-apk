@@ -14,6 +14,7 @@ var feed: Array[String] = []
 var generation: int = 0
 var _ai_busy: bool = false
 var _ai_pending: bool = false
+var _player_auto_end_pending: bool = false
 
 func new_encounter(reset_campaign: bool = false, encounter_id: String = "boss") -> void:
     generation += 1
@@ -23,6 +24,7 @@ func new_encounter(reset_campaign: bool = false, encounter_id: String = "boss") 
     if bag == null or reset_campaign:
         bag = ModuleInventory.new()
     _rewarded = false
+    _player_auto_end_pending = false
     _replace(V3Battle.new(bag))
     battle.create(progression, encounter_id)
     _schedule_ai()
@@ -86,7 +88,27 @@ func _on_changed(message: String) -> void:
         _rewarded = true
         var awards: Array[String] = progression.earn_victory()
         _message("VICTORY • " + "  |  ".join(PackedStringArray(awards)))
-        _message("Open EQUIP, choose your class and NEXT ENCOUNTER to keep your XP.")
+        _message("Victory! Experience awarded. Returning to exploration.")
+    _queue_auto_player_turn()
+
+func _queue_auto_player_turn() -> void:
+    if _player_auto_end_pending or battle == null or battle.finished or not is_player_turn():
+        return
+    var actor: V3Unit = battle.active_unit()
+    if actor == null or not actor.action_used or not battle.abilities.targets("potion",actor,battle.units).is_empty() and battle.can_act("potion"):
+        return
+    _player_auto_end_pending = true
+    call_deferred("_auto_finish_player_turn", generation)
+
+func _auto_finish_player_turn(expected_generation: int) -> void:
+    _player_auto_end_pending = false
+    if expected_generation != generation or battle == null or battle.finished or not is_player_turn():
+        return
+    var actor: V3Unit = battle.active_unit()
+    if actor == null or not actor.action_used or battle.can_act("potion"):
+        return
+    if battle.end_turn():
+        _schedule_ai()
 
 func _message(message: String) -> void:
     feed.append(message)
