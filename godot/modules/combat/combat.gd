@@ -107,6 +107,7 @@ func advance_turn() -> bool:
         if turn_order.is_empty():
             return false
         next_index = 0
+    return false
 
 func _check_finished() -> void:
     var party_alive: bool = false
