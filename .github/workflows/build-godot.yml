@@ -76,6 +76,13 @@ jobs:
           set -euo pipefail
           timeout 45s "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path godot --script res://tests/test_modules.gd | tee /tmp/godot-test-results.txt
           grep -q "ALL MODULE TESTS PASSED" /tmp/godot-test-results.txt
+      - name: Run v0.3 combat targeting AI and equipment tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 60s "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path godot --script res://v03/tests/smoke.gd 2>&1 | tee /tmp/v03-tests.txt
+          grep -q "V03 ALL BATTLE TESTS PASSED" /tmp/v03-tests.txt
+          if grep -E 'SCRIPT ERROR|Parse Error|FAIL V03:' /tmp/v03-tests.txt; then exit 1; fi
       - name: Check main scene boots
         shell: bash
         run: |
@@ -90,12 +97,12 @@ jobs:
           export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$GITHUB_WORKSPACE/godot/debug.keystore"
           export GODOT_ANDROID_KEYSTORE_DEBUG_USER="androiddebugkey"
           export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="android"
-          "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --verbose --path godot --export-debug "Android" "$GITHUB_WORKSPACE/build/godot-test.apk" 2>&1 | tee /tmp/godot-export.txt
+          "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --verbose --path godot --export-debug "Android" "$GITHUB_WORKSPACE/build/Ironbound_Tactics_v0_3.apk" 2>&1 | tee /tmp/godot-export.txt
           if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' /tmp/godot-export.txt; then exit 1; fi
-          test -s build/godot-test.apk
+          test -s build/Ironbound_Tactics_v0_3.apk
       - name: Upload Godot APK
         uses: actions/upload-artifact@v4
         with:
-          name: godot-test-apk
-          path: build/godot-test.apk
+          name: ironbound-tactics-v03
+          path: build/Ironbound_Tactics_v0_3.apk
           if-no-files-found: error
